@@ -6,6 +6,7 @@ export const showStatusOptions = [
   { value: "booked", label: "Booked" },
   { value: "rider_sent", label: "Rider sent" },
   { value: "confirmed", label: "Confirmed" },
+  { value: "completed", label: "Completed" },
   { value: "unavailable", label: "Unavailable" },
   { value: "cancelled", label: "Cancelled" },
 ] as const;
@@ -96,6 +97,7 @@ export const showSchema = z.object({
     "booked",
     "rider_sent",
     "confirmed",
+    "completed",
     "unavailable",
     "cancelled",
   ]),
@@ -124,6 +126,8 @@ export const showSchema = z.object({
 
   ticketPrice: optionalPence,
   ticketCapacity: optionalInt,
+  estTicketsSold: optionalInt,
+  estTicketsSoldPct: optionalPercent,
   ticketsSold: optionalInt,
   ticketsComped: optionalInt,
 
@@ -156,6 +160,7 @@ export const showStatusValues = [
   "booked",
   "rider_sent",
   "confirmed",
+  "completed",
   "unavailable",
   "cancelled",
 ] as const;
@@ -168,6 +173,7 @@ export const showStatusBadge: Record<ShowStatus, string> = {
   booked: "pill pill-booked",
   rider_sent: "pill pill-rider_sent",
   confirmed: "pill pill-confirmed",
+  completed: "pill pill-completed",
   unavailable: "pill pill-unavailable",
   cancelled: "pill pill-cancelled",
 };

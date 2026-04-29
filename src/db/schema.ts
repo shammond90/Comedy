@@ -41,6 +41,7 @@ export const showStatusEnum = pgEnum("show_status", [
   "booked",
   "rider_sent",
   "confirmed",
+  "completed",
   "unavailable",
   "cancelled",
 ]);
@@ -330,8 +331,14 @@ export const shows = pgTable(
     // available for future multi-tier support)
     ticketPricePence: integer("ticket_price_pence"),
     ticketCapacity: integer("ticket_capacity"),
+    // Estimated (pre-show)
+    estTicketsSold: integer("est_tickets_sold"),
+    estTicketsSoldPct: numeric("est_tickets_sold_pct", { precision: 5, scale: 2 }),
+    // Actual (post-show — revenue is manually entered, not calculated)
     ticketsSold: integer("tickets_sold").notNull().default(0),
     ticketsComped: integer("tickets_comped").notNull().default(0),
+    actualRevenuePence: integer("actual_revenue_pence"),
+    actualTicketPricePence: integer("actual_ticket_price_pence"),
 
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

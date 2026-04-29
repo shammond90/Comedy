@@ -33,13 +33,16 @@ import {
   deleteAccommodation,
   deleteTravel,
   deleteReminder,
+  updateTickets,
 } from "./sub-actions";
 import {
   AccommodationsSection,
   TravelSection,
   AddReminderForm,
+  TicketsCard,
   type AccommodationRow,
   type TravelRow,
+  type TicketsData,
 } from "./sub-forms";
 
 const reminderTypeLabels: Record<string, string> = {
@@ -198,7 +201,7 @@ export default async function ShowDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Revenue
+              Revenue{fin.isEstimated && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -222,7 +225,7 @@ export default async function ShowDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Net
+              Net{fin.isEstimated && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -236,6 +239,31 @@ export default async function ShowDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Tickets card — always shown for estimated; actuals unlocked when completed */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tickets</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TicketsCard
+            tourId={tourId}
+            showId={s.id}
+            data={{
+              ticketPricePence: s.ticketPricePence,
+              ticketCapacity: s.ticketCapacity,
+              estTicketsSold: s.estTicketsSold,
+              estTicketsSoldPct: s.estTicketsSoldPct,
+              ticketsSold: s.ticketsSold,
+              ticketsComped: s.ticketsComped,
+              actualRevenuePence: s.actualRevenuePence,
+              actualTicketPricePence: s.actualTicketPricePence,
+            } satisfies TicketsData}
+            showStatus={s.status}
+            action={updateTickets}
+          />
+        </CardContent>
+      </Card>
 
       {/* Cost breakdown table */}
       <Card>

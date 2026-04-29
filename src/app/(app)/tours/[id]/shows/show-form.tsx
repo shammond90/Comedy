@@ -66,6 +66,11 @@ export function ShowForm({
   const s = show;
   const p = prefill ?? {};
 
+  // For est % ↔ count calculation helper
+  const [estCount, setEstCount] = useState(s?.estTicketsSold?.toString() ?? "");
+  const [estPct, setEstPct] = useState(s?.estTicketsSoldPct?.toString() ?? "");
+  const [capacityVal, setCapacityVal] = useState(s?.ticketCapacity?.toString() ?? "");
+
   const [selectedVenueId, setSelectedVenueId] = useState(s?.venueId ?? p.venueId ?? "");
   const [selectedCity, setSelectedCity] = useState(s?.city ?? p.city ?? "");
 
@@ -94,6 +99,7 @@ export function ShowForm({
         | "booked"
         | "rider_sent"
         | "confirmed"
+        | "completed"
         | "cancelled"
         | "unavailable",
       venueId: s?.venueId ?? p.venueId ?? "",
@@ -119,6 +125,8 @@ export function ShowForm({
       ticketPrice: s ? penceToInput(s.ticketPricePence) : (p.ticketPrice ?? ""),
       ticketCapacity:
         s?.ticketCapacity?.toString() ?? p.ticketCapacity ?? "",
+      estTicketsSold: s?.estTicketsSold?.toString() ?? "",
+      estTicketsSoldPct: s?.estTicketsSoldPct?.toString() ?? "",
       ticketsSold: s?.ticketsSold?.toString() ?? "0",
       ticketsComped: s?.ticketsComped?.toString() ?? "0",
       marketingBudget: s
@@ -325,35 +333,93 @@ export function ShowForm({
         <CardHeader>
           <CardTitle>Ticketing</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field label="Ticket price" error={errors.ticketPrice?.message ?? fe.ticketPrice?.[0]}>
-            <MoneyInput
-              name="ticketPrice"
-              defaultValue={s ? penceToInput(s.ticketPricePence) : (p.ticketPrice ?? "")}
-              onValueChange={(v) => setValue("ticketPrice", v, { shouldValidate: true })}
-            />
-          </Field>
-          <Field label="Capacity">
-            <Input
-              type="number"
-              min={0}
-              {...register("ticketCapacity")}
-            />
-          </Field>
-          <Field label="Tickets sold">
-            <Input
-              type="number"
-              min={0}
-              {...register("ticketsSold")}
-            />
-          </Field>
-          <Field label="Tickets comped">
-            <Input
-              type="number"
-              min={0}
-              {...register("ticketsComped")}
-            />
-          </Field>
+        <CardContent className="space-y-6">
+          {/* Base info */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Ticket price (listed)" error={errors.ticketPrice?.message ?? fe.ticketPrice?.[0]}>
+              <MoneyInput
+                name="ticketPrice"
+                defaultValue={s ? penceToInput(s.ticketPricePence) : (p.ticketPrice ?? "")}
+                onValueChange={(v) => setValue("ticketPrice", v, { shouldValidate: true })}
+              />
+            </Field>
+            <Field label="Capacity">
+              <Input
+                type="number"
+                min={0}
+                {...register("ticketCapacity")}
+                onChange={(e) => {
+                  setValue("ticketCapacity", e.target.value);
+                  setCapacityVal(e.target.value);
+                  // Recalculate count from pct if pct is set
+                  if (estPct && e.target.value) {
+                    const cap = Number(e.target.value);
+                    const count = Math.round((Number(estPct) / 100) * cap);
+                    setEstCount(String(count));
+                    setValue("estTicketsSold", String(count));
+                  }
+                }}
+              />
+            </Field>
+          </div>
+
+          {/* Estimated */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Estimated (pre-show)
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Est. tickets sold">
+                <Input
+                  type="number"
+                  min={0}
+                  {...register("estTicketsSold")}
+                  value={estCount}
+                  onChange={(e) => {
+                    setEstCount(e.target.value);
+                    setValue("estTicketsSold", e.target.value);
+                    // Back-calculate pct
+                    const cap = Number(capacityVal);
+                    if (cap > 0 && e.target.value !== "") {
+                      const pct = ((Number(e.target.value) / cap) * 100).toFixed(1);
+                      setEstPct(pct);
+                      setValue("estTicketsSoldPct", pct);
+                    } else {
+                      setEstPct("");
+                      setValue("estTicketsSoldPct", "");
+                    }
+                  }}
+                />
+              </Field>
+              <Field
+                label="Est. % of capacity"
+                hint={capacityVal ? `${Math.round((Number(estPct) / 100) * Number(capacityVal)) || ""} tickets` : undefined}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  {...register("estTicketsSoldPct")}
+                  value={estPct}
+                  onChange={(e) => {
+                    setEstPct(e.target.value);
+                    setValue("estTicketsSoldPct", e.target.value);
+                    // Forward-calculate count
+                    const cap = Number(capacityVal);
+                    if (cap > 0 && e.target.value !== "") {
+                      const count = Math.round((Number(e.target.value) / 100) * cap);
+                      setEstCount(String(count));
+                      setValue("estTicketsSold", String(count));
+                    } else {
+                      setEstCount("");
+                      setValue("estTicketsSold", "");
+                    }
+                  }}
+                />
+              </Field>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

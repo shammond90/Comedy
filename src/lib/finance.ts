@@ -21,11 +21,15 @@ export type ShowFinancials = {
   totalCostsPence: number;
   netPence: number;
   occupancyPercent: number | null;
+  /** True when revenue is driven by estimated (not actual) ticket data */
+  isEstimated: boolean;
 };
 
 /**
- * Compute "as of now" financials for a single show using the show row plus
- * aggregated cost rows. Pure function — caller is responsible for fetching.
+ * Revenue priority:
+ *  1. actual_revenue_pence is set → use it (isEstimated = false)
+ *  2. est_tickets_sold is set → est × ticket_price (isEstimated = true)
+ *  3. fallback → 0
  */
 export function computeShowFinancials(
   show: Show,
@@ -34,8 +38,20 @@ export function computeShowFinancials(
 ): ShowFinancials {
   const ticketsSold = show.ticketsSold ?? 0;
   const ticketsComped = show.ticketsComped ?? 0;
-  const ticketPrice = show.ticketPricePence ?? 0;
-  const ticketRevenuePence = ticketsSold * ticketPrice;
+
+  let ticketRevenuePence: number;
+  let isEstimated: boolean;
+
+  if (show.actualRevenuePence != null) {
+    ticketRevenuePence = show.actualRevenuePence;
+    isEstimated = false;
+  } else if (show.estTicketsSold != null && show.estTicketsSold > 0) {
+    ticketRevenuePence = show.estTicketsSold * (show.ticketPricePence ?? 0);
+    isEstimated = true;
+  } else {
+    ticketRevenuePence = 0;
+    isEstimated = false;
+  }
 
   const capacityRemaining =
     show.ticketCapacity != null
@@ -65,6 +81,7 @@ export function computeShowFinancials(
     totalCostsPence,
     netPence,
     occupancyPercent,
+    isEstimated,
   };
 }
 
@@ -136,6 +153,7 @@ export async function getTourFinancials(orgId: string, tourId: string) {
       acc.costsPence += fin.totalCostsPence;
       acc.netPence += fin.netPence;
       acc.ticketsSold += fin.ticketsSold;
+      if (fin.isEstimated) acc.hasEstimates = true;
       return acc;
     },
     {
@@ -147,6 +165,7 @@ export async function getTourFinancials(orgId: string, tourId: string) {
       costsPence: 0,
       netPence: 0,
       ticketsSold: 0,
+      hasEstimates: false,
     },
   );
 

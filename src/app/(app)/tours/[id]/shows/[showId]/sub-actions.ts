@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accommodations, travel, reminders } from "@/db/schema";
+import { accommodations, travel, reminders, shows } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 
 function parsePence(v: FormDataEntryValue | null): number | null {
@@ -155,6 +155,44 @@ export async function deleteTravel(formData: FormData) {
   await db
     .delete(travel)
     .where(and(eq(travel.id, id), eq(travel.orgId, orgId)));
+  for (const p of pathsToRevalidate(tourId, showId)) revalidatePath(p);
+}
+
+/* ------------------------------- Tickets --------------------------------- */
+
+export async function updateTickets(formData: FormData) {
+  const { orgId } = await requireOrg();
+  const tourId = String(formData.get("tourId"));
+  const showId = String(formData.get("showId"));
+
+  function intOrNull(v: FormDataEntryValue | null): number | null {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+  function pctOrNull(v: FormDataEntryValue | null): string | null {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n.toFixed(2) : null;
+  }
+
+  await db
+    .update(shows)
+    .set({
+      estTicketsSold: intOrNull(formData.get("estTicketsSold")),
+      estTicketsSoldPct: pctOrNull(formData.get("estTicketsSoldPct")),
+      ticketsSold: intOrNull(formData.get("ticketsSold")) ?? 0,
+      ticketsComped: intOrNull(formData.get("ticketsComped")) ?? 0,
+      actualRevenuePence: parsePence(formData.get("actualRevenue")),
+      actualTicketPricePence: parsePence(formData.get("actualTicketPrice")),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(shows.id, showId), eq(shows.orgId, orgId)));
+
   for (const p of pathsToRevalidate(tourId, showId)) revalidatePath(p);
 }
 

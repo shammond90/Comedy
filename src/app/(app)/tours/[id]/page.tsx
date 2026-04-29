@@ -120,7 +120,7 @@ export default async function TourDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Revenue
+              Revenue{totals.hasEstimates && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -132,7 +132,7 @@ export default async function TourDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Net P&amp;L
+              Net P&amp;L{totals.hasEstimates && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -206,6 +206,7 @@ export default async function TourDetailPage({
                       </TD>
                       <TD className="text-right tabular-nums">
                         {formatPence(fin.ticketRevenuePence)}
+                        {fin.isEstimated && <span className="ml-1 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
                       </TD>
                       <TD
                         className={`text-right tabular-nums ${
@@ -213,6 +214,7 @@ export default async function TourDetailPage({
                         }`}
                       >
                         {formatPence(fin.netPence)}
+                        {fin.isEstimated && <span className="ml-1 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
                       </TD>
                     </TR>
                   );

@@ -61,6 +61,8 @@ function mapToColumns(
     settlementGuaranteePence: data.settlementGuarantee,
     ticketPricePence: data.ticketPrice,
     ticketCapacity: data.ticketCapacity,
+    estTicketsSold: data.estTicketsSold,
+    estTicketsSoldPct: data.estTicketsSoldPct,
     ticketsSold: data.ticketsSold ?? 0,
     ticketsComped: data.ticketsComped ?? 0,
     marketingBudgetPence: data.marketingBudget,

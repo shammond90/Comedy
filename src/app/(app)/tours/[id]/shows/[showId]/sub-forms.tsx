@@ -730,3 +730,171 @@ export function TravelSection({
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Tickets card (est + actual — shown when show is completed)                */
+/* -------------------------------------------------------------------------- */
+
+function penceToInput(v: number | null | undefined) {
+  return v != null ? (v / 100).toFixed(2) : "";
+}
+
+export type TicketsData = {
+  ticketPricePence: number | null;
+  ticketCapacity: number | null;
+  estTicketsSold: number | null;
+  estTicketsSoldPct: string | null;
+  ticketsSold: number;
+  ticketsComped: number;
+  actualRevenuePence: number | null;
+  actualTicketPricePence: number | null;
+};
+
+export function TicketsCard({
+  tourId,
+  showId,
+  data,
+  showStatus,
+  action,
+}: {
+  tourId: string;
+  showId: string;
+  data: TicketsData;
+  showStatus: string;
+  action: ServerAction;
+}) {
+  const isCompleted = showStatus === "completed";
+  const [isPending, start] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  // Estimated section state
+  const [estCount, setEstCount] = useState(data.estTicketsSold?.toString() ?? "");
+  const [estPct, setEstPct] = useState(data.estTicketsSoldPct?.toString() ?? "");
+  const cap = data.ticketCapacity ?? 0;
+
+  function handleEstCountChange(val: string) {
+    setEstCount(val);
+    if (cap > 0 && val !== "") {
+      setEstPct(((Number(val) / cap) * 100).toFixed(1));
+    } else {
+      setEstPct("");
+    }
+  }
+  function handleEstPctChange(val: string) {
+    setEstPct(val);
+    if (cap > 0 && val !== "") {
+      setEstCount(String(Math.round((Number(val) / 100) * cap)));
+    } else {
+      setEstCount("");
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    // Override est fields with our controlled state
+    fd.set("estTicketsSold", estCount);
+    fd.set("estTicketsSoldPct", estPct);
+    start(async () => {
+      await action(fd);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <input type="hidden" name="tourId" value={tourId} />
+      <input type="hidden" name="showId" value={showId} />
+
+      {/* Estimated section */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Estimated (pre-show)
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Est. tickets sold">
+            <Input
+              type="number"
+              min={0}
+              name="estTicketsSold"
+              value={estCount}
+              onChange={(e) => handleEstCountChange(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Est. % of capacity"
+            hint={cap > 0 && estPct ? `≈ ${Math.round((Number(estPct) / 100) * cap)} tickets` : undefined}
+          >
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              name="estTicketsSoldPct"
+              value={estPct}
+              onChange={(e) => handleEstPctChange(e.target.value)}
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Actual section */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          Actual (post-show)
+        </p>
+        {isCompleted ? (
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              Actual revenue overrides estimates for P&amp;L calculations.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Tickets sold (count)">
+                <Input
+                  type="number"
+                  min={0}
+                  name="ticketsSold"
+                  defaultValue={data.ticketsSold || ""}
+                />
+              </Field>
+              <Field label="Tickets comped (count)">
+                <Input
+                  type="number"
+                  min={0}
+                  name="ticketsComped"
+                  defaultValue={data.ticketsComped || ""}
+                />
+              </Field>
+              <Field label="Actual ticket price" hint="For reference only">
+                <MoneyInput
+                  name="actualTicketPrice"
+                  defaultValue={penceToInput(data.actualTicketPricePence)}
+                  onValueChange={() => {}}
+                />
+              </Field>
+              <Field label="Actual total revenue" hint="Enter the real total — not calculated">
+                <MoneyInput
+                  name="actualRevenue"
+                  defaultValue={penceToInput(data.actualRevenuePence)}
+                  onValueChange={() => {}}
+                />
+              </Field>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Mark the show as <strong>Completed</strong> to enter actual ticket numbers and revenue.
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Button type="submit" size="sm" disabled={isPending}>
+          {isPending ? "Saving…" : "Save tickets"}
+        </Button>
+        {saved && <span className="text-xs text-muted-foreground">Saved ✓</span>}
+      </div>
+    </form>
+  );
+}
