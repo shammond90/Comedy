@@ -1,0 +1,476 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { tours, shows, venues, reminders } from "@/db/schema";
+import { requireOrg } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { formatDate, formatPence } from "@/lib/utils";
+import { getShowFinancials } from "@/lib/finance";
+import { showStatusOptions } from "../schema";
+import { PageHeader } from "@/components/app/page-header";
+import { StatusPill } from "@/components/ui/pill";
+import {
+  deleteShowAction,
+  duplicateShowAction,
+  quickUpdateStatusAction,
+} from "../actions";
+import {
+  addAccommodation,
+  updateAccommodation,
+  addTravel,
+  updateTravel,
+  addReminder,
+  completeReminder,
+  deleteAccommodation,
+  deleteTravel,
+  deleteReminder,
+} from "./sub-actions";
+import {
+  AccommodationsSection,
+  TravelSection,
+  AddReminderForm,
+  type AccommodationRow,
+  type TravelRow,
+} from "./sub-forms";
+
+const reminderTypeLabels: Record<string, string> = {
+  venue_followup: "Venue follow-up",
+  rider_due: "Rider due",
+  marketing_deadline: "Marketing deadline",
+  settlement_due: "Settlement due",
+  tech_rider_confirm: "Tech rider confirm",
+  accommodation_booking: "Accommodation",
+  travel_booking: "Travel",
+  ticket_on_sale: "Tickets on sale",
+  custom: "Custom",
+};
+
+export default async function ShowDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string; showId: string }>;
+}) {
+  const { id: tourId, showId } = await params;
+  const { orgId } = await requireOrg();
+
+  const data = await getShowFinancials(orgId, showId);
+  if (!data) notFound();
+  const { show: s, accommodations, travel, fin } = data;
+
+  const [t] = await db
+    .select({ id: tours.id, name: tours.name })
+    .from(tours)
+    .where(and(eq(tours.id, tourId), eq(tours.orgId, orgId)))
+    .limit(1);
+  if (!t) notFound();
+
+  const venueRow = s.venueId
+    ? (
+        await db
+          .select()
+          .from(venues)
+          .where(and(eq(venues.id, s.venueId), eq(venues.orgId, orgId)))
+          .limit(1)
+      )[0]
+    : null;
+
+  const showReminders = await db
+    .select()
+    .from(reminders)
+    .where(
+      and(
+        eq(reminders.orgId, orgId),
+        eq(reminders.showId, showId),
+      ),
+    )
+    .orderBy(asc(reminders.dueAt));
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow={
+          <Link
+            href={`/tours/${tourId}`}
+            className="hover:text-foreground transition-colors"
+          >
+            ← {t.name}
+          </Link>
+        }
+        title={
+          <span className="flex items-center gap-3">
+            <span>{formatDate(s.showDate)}</span>
+            <StatusPill status={s.status} />
+          </span>
+        }
+        description={
+          [venueRow?.name, s.city ?? venueRow?.city]
+            .filter(Boolean)
+            .join(" · ") || "Venue not set"
+        }
+        actions={
+          <>
+            <Link href={`/tours/${tourId}/shows/${s.id}/edit`}>
+              <Button variant="outline">Edit</Button>
+            </Link>
+            <form action={duplicateShowAction}>
+              <input type="hidden" name="id" value={s.id} />
+              <input type="hidden" name="tourId" value={tourId} />
+              <Button type="submit" variant="outline" formNoValidate>
+                Duplicate
+              </Button>
+            </form>
+            <form action={deleteShowAction}>
+              <input type="hidden" name="id" value={s.id} />
+              <input type="hidden" name="tourId" value={tourId} />
+              <Button type="submit" variant="destructive" formNoValidate>
+                Archive
+              </Button>
+            </form>
+          </>
+        }
+      />
+
+      {/* Quick status update */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-4">
+          <span className="text-sm text-muted-foreground">Update status:</span>
+          <form action={quickUpdateStatusAction} className="flex gap-2">
+            <input type="hidden" name="id" value={s.id} />
+            <input type="hidden" name="tourId" value={tourId} />
+            <Select name="status" defaultValue={s.status}>
+              {showStatusOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit" size="sm" variant="outline">
+              Update
+            </Button>
+          </form>
+          {s.contractUrl && (
+            <a
+              href={s.contractUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto text-sm underline"
+            >
+              View contract ↗
+            </a>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Financial summary */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
+              Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-display text-3xl tabular-nums">
+              {fin.ticketsSold}
+              {s.ticketCapacity != null && (
+                <span className="text-base text-muted-foreground">
+                  {" "}
+                  / {s.ticketCapacity}
+                </span>
+              )}
+            </p>
+            {fin.occupancyPercent != null && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {fin.occupancyPercent}% occupancy
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
+              Revenue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-display text-3xl tabular-nums">
+              {formatPence(fin.ticketRevenuePence)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
+              Costs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-display text-3xl tabular-nums">
+              {formatPence(fin.totalCostsPence)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
+              Net
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p
+              className={`font-display text-3xl tabular-nums ${
+                fin.netPence < 0 ? "text-destructive" : ""
+              }`}
+            >
+              {formatPence(fin.netPence)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Cost breakdown table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Cost breakdown</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TBody>
+              <TR>
+                <TD className="text-muted-foreground">Venue hire</TD>
+                <TD className="text-right tabular-nums">
+                  {formatPence(fin.venueFeePence)}
+                </TD>
+              </TR>
+              <TR>
+                <TD className="text-muted-foreground">Accommodation</TD>
+                <TD className="text-right tabular-nums">
+                  {formatPence(fin.accommodationPence)}
+                </TD>
+              </TR>
+              <TR>
+                <TD className="text-muted-foreground">Travel</TD>
+                <TD className="text-right tabular-nums">
+                  {formatPence(fin.travelPence)}
+                </TD>
+              </TR>
+              <TR>
+                <TD className="text-muted-foreground">Marketing</TD>
+                <TD className="text-right tabular-nums">
+                  {formatPence(fin.marketingPence)}
+                </TD>
+              </TR>
+              <TR>
+                <TD className="font-medium">Total</TD>
+                <TD className="text-right font-medium tabular-nums">
+                  {formatPence(fin.totalCostsPence)}
+                </TD>
+              </TR>
+            </TBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Accommodation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Accommodation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AccommodationsSection
+            accommodations={accommodations.map((a): AccommodationRow => ({
+              id: a.id,
+              hotelName: a.hotelName,
+              address: a.address,
+              checkIn: a.checkIn,
+              checkInTime: a.checkInTime,
+              checkOut: a.checkOut,
+              checkOutTime: a.checkOutTime,
+              bookingReference: a.bookingReference,
+              contactPhone: a.contactPhone,
+              costPence: a.costPence,
+              notes: a.notes,
+            }))}
+            tourId={tourId}
+            showId={s.id}
+            addAction={addAccommodation}
+            updateAction={updateAccommodation}
+            deleteAction={deleteAccommodation}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Travel */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Travel</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TravelSection
+            travelRows={travel.map((tr): TravelRow => ({
+              id: tr.id,
+              travelType: tr.travelType,
+              departureLocation: tr.departureLocation,
+              departureAt: tr.departureAt?.toISOString() ?? null,
+              arrivalLocation: tr.arrivalLocation,
+              arrivalAt: tr.arrivalAt?.toISOString() ?? null,
+              bookingReference: tr.bookingReference,
+              costPence: tr.costPence,
+              notes: tr.notes,
+            }))}
+            tourId={tourId}
+            showId={s.id}
+            addAction={addTravel}
+            updateAction={updateTravel}
+            deleteAction={deleteTravel}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Reminders */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Reminders</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {showReminders.length > 0 && (
+            <ul className="divide-y divide-border rounded-md border border-border">
+              {showReminders.map((r) => (
+                <li
+                  key={r.id}
+                  className={`flex items-center justify-between gap-4 p-3 ${r.completedAt ? "opacity-50" : ""}`}
+                >
+                  <div>
+                    <p
+                      className={`text-sm font-medium ${r.completedAt ? "line-through" : ""}`}
+                    >
+                      {r.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {reminderTypeLabels[r.type]} · due {formatDate(r.dueAt)}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    {!r.completedAt && (
+                      <form action={completeReminder}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="tourId" value={tourId} />
+                        <input type="hidden" name="showId" value={s.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          formNoValidate
+                        >
+                          Done
+                        </Button>
+                      </form>
+                    )}
+                    <form action={deleteReminder}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="tourId" value={tourId} />
+                      <input type="hidden" name="showId" value={s.id} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="sm"
+                        formNoValidate
+                      >
+                        Delete
+                      </Button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AddReminderForm
+            tourId={tourId}
+            showId={s.id}
+            action={addReminder}
+            typeOptions={Object.entries(reminderTypeLabels).map(([value, label]) => ({ value, label }))}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Marketing */}
+      {(s.marketingCopy || s.marketingNotes) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Local marketing</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm whitespace-pre-wrap">
+            {s.marketingCopy && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                  Copy
+                </p>
+                <p>{s.marketingCopy}</p>
+              </div>
+            )}
+            {s.marketingNotes && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                  Notes
+                </p>
+                <p>{s.marketingNotes}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {(s.notes || s.supportAct) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Show notes</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            {s.supportAct && (
+              <p>
+                <span className="text-muted-foreground">Support:</span>{" "}
+                {s.supportAct}
+              </p>
+            )}
+            {s.notes && (
+              <p className="whitespace-pre-wrap">{s.notes}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {(venueRow?.primaryContactName || venueRow?.primaryContactEmail) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Venue contact</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-1">
+            <p>
+              <span className="text-muted-foreground">Name:</span>{" "}
+              {venueRow.primaryContactName ?? "—"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Phone:</span>{" "}
+              {venueRow.primaryContactPhone ?? "—"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Email:</span>{" "}
+              {venueRow.primaryContactEmail ?? "—"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+export const dynamic = "force-dynamic";

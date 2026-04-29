@@ -1,26 +1,187 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* -------------------------------------------------------------------------- */
+/*  Comedy — design tokens                                                    */
+/*  Warm, editorial, calm. Light = paper. Dark = graphite.                    */
+/* -------------------------------------------------------------------------- */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Surfaces */
+  --background: #f8f5f0;
+  --surface: #ffffff;
+  --surface-2: #f1ebe1;
+  --foreground: #1f1b16;
+  --muted: #f1ebe1;
+  --muted-foreground: #6b6357;
+  --subtle: #8a8275;
+  --border: #e6dfd2;
+  --border-strong: #d4cab9;
+
+  /* Brand */
+  --primary: #1f1b16;
+  --primary-foreground: #f8f5f0;
+  --accent: #c8553d;
+  --accent-foreground: #ffffff;
+  --accent-soft: #f4ddd6;
+
+  /* Status pills */
+  --status-planned-bg: #ece6d9;
+  --status-planned-fg: #5a5447;
+  --status-contacted-bg: #f4e6c9;
+  --status-contacted-fg: #7a5a1f;
+  --status-booked-bg: #d6e3ee;
+  --status-booked-fg: #2a4d6b;
+  --status-rider-bg: #e0d8ee;
+  --status-rider-fg: #4d3d7a;
+  --status-confirmed-bg: #d8e7d8;
+  --status-confirmed-fg: #2c5530;
+  --status-unavailable-bg: #efd6d3;
+  --status-unavailable-fg: #7a2a22;
+  --status-cancelled-bg: #ece6d9;
+  --status-cancelled-fg: #8a8275;
+
+  /* Feedback */
+  --destructive: #b03a2e;
+  --destructive-foreground: #ffffff;
+  --success: #4f7a4f;
+  --warning: #b8853f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #15171a;
+    --surface: #1c1f23;
+    --surface-2: #20242a;
+    --foreground: #e8e3da;
+    --muted: #20242a;
+    --muted-foreground: #a39e93;
+    --subtle: #7a7468;
+    --border: #2a2e35;
+    --border-strong: #383d46;
+
+    --primary: #e8e3da;
+    --primary-foreground: #15171a;
+    --accent: #e0a458;
+    --accent-foreground: #15171a;
+    --accent-soft: #3a2f1f;
+
+    --status-planned-bg: #25282d;
+    --status-planned-fg: #b8b1a3;
+    --status-contacted-bg: #3a2f1c;
+    --status-contacted-fg: #e0b870;
+    --status-booked-bg: #1d2c3a;
+    --status-booked-fg: #8ab4d6;
+    --status-rider-bg: #2a2440;
+    --status-rider-fg: #b3a3d6;
+    --status-confirmed-bg: #1f3320;
+    --status-confirmed-fg: #95c098;
+    --status-unavailable-bg: #3a1f1d;
+    --status-unavailable-fg: #d68a82;
+    --status-cancelled-bg: #25282d;
+    --status-cancelled-fg: #6b6557;
+
+    --destructive: #d96e62;
+    --destructive-foreground: #ffffff;
+    --success: #84b388;
+    --warning: #d6a455;
   }
 }
 
-body {
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-jetbrains);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html, body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
+
+body {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-feature-settings: "ss01";
+  letter-spacing: -0.015em;
+}
+
+.tabular-nums,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--subtle);
+}
+
+/* Status pill utilities */
+.pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium; }
+.pill-planned     { background: var(--status-planned-bg);     color: var(--status-planned-fg); }
+.pill-contacted   { background: var(--status-contacted-bg);   color: var(--status-contacted-fg); }
+.pill-booked      { background: var(--status-booked-bg);      color: var(--status-booked-fg); }
+.pill-rider_sent  { background: var(--status-rider-bg);       color: var(--status-rider-fg); }
+.pill-confirmed   { background: var(--status-confirmed-bg);   color: var(--status-confirmed-fg); }
+.pill-unavailable { background: var(--status-unavailable-bg); color: var(--status-unavailable-fg); }
+.pill-cancelled   { background: var(--status-cancelled-bg);   color: var(--status-cancelled-fg); }
+.pill-planning    { background: var(--status-planned-bg);     color: var(--status-planned-fg); }
+.pill-in_progress { background: var(--status-booked-bg);      color: var(--status-booked-fg); }
+.pill-completed   { background: var(--status-confirmed-bg);   color: var(--status-confirmed-fg); }
