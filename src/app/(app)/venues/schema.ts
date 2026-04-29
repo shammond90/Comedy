@@ -27,7 +27,7 @@ export const venueSchema = z.object({
   ]),
   addressLine1: optionalString,
   addressLine2: optionalString,
-  city: optionalString,
+  city: z.string().trim().min(1, "City is required"),
   postcode: optionalString,
   country: optionalString,
   capacity: z

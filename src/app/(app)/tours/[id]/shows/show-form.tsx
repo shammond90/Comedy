@@ -66,6 +66,17 @@ export function ShowForm({
   const s = show;
   const p = prefill ?? {};
 
+  const [selectedVenueId, setSelectedVenueId] = useState(s?.venueId ?? p.venueId ?? "");
+  const [selectedCity, setSelectedCity] = useState(s?.city ?? p.city ?? "");
+
+  const uniqueCities = [...new Set(
+    venues.map((v) => v.city).filter((c): c is string => !!c),
+  )].sort();
+
+  const filteredVenues = selectedCity
+    ? venues.filter((v) => v.city === selectedCity)
+    : venues;
+
   const {
     register,
     handleSubmit,
@@ -160,13 +171,23 @@ export function ShowForm({
             <div className="space-y-2">
               <Select
                 {...register("venueId")}
+                value={selectedVenueId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedVenueId(id);
+                  setValue("venueId", id, { shouldValidate: true });
+                  const venue = venues.find((v) => v.id === id);
+                  if (venue?.city) {
+                    setSelectedCity(venue.city);
+                    setValue("city", venue.city, { shouldValidate: true });
+                  }
+                }}
                 disabled={quickAdd}
               >
                 <option value="">— Select a venue —</option>
-                {venues.map((v) => (
+                {filteredVenues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
-                    {v.city && ` (${v.city})`}
                   </option>
                 ))}
               </Select>
@@ -196,7 +217,28 @@ export function ShowForm({
             </div>
           </Field>
           <Field label="City">
-            <Input {...register("city")} />
+            <Select
+              {...register("city")}
+              value={selectedCity}
+              onChange={(e) => {
+                const city = e.target.value;
+                setSelectedCity(city);
+                setValue("city", city, { shouldValidate: true });
+                // If the selected venue isn't in this city, clear it
+                if (selectedVenueId) {
+                  const venue = venues.find((v) => v.id === selectedVenueId);
+                  if (venue && venue.city !== city) {
+                    setSelectedVenueId("");
+                    setValue("venueId", "", { shouldValidate: true });
+                  }
+                }
+              }}
+            >
+              <option value="">— All cities —</option>
+              {uniqueCities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
           </Field>
           <Field label="Doors time">
             <Input type="time" {...register("doorsTime")} />
