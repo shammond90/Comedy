@@ -7,10 +7,11 @@ declare global {
   var __pg: ReturnType<typeof postgres> | undefined;
 }
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString =
+  process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 if (!connectionString) {
   throw new Error(
-    "DATABASE_URL is not set. Add it to .env.local (dev) or your Vercel environment variables (production).",
+    "DATABASE_URL (or POSTGRES_URL) is not set. Add it to .env.local (dev) or your Vercel environment variables (production).",
   );
 }
 
