@@ -33,16 +33,13 @@ import {
   deleteAccommodation,
   deleteTravel,
   deleteReminder,
-  updateTickets,
 } from "./sub-actions";
 import {
   AccommodationsSection,
   TravelSection,
   AddReminderForm,
-  TicketsCard,
   type AccommodationRow,
   type TravelRow,
-  type TicketsData,
 } from "./sub-forms";
 
 const reminderTypeLabels: Record<string, string> = {
@@ -175,33 +172,45 @@ export default async function ShowDetailPage({
 
       {/* Financial summary */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Tickets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-display text-3xl tabular-nums">
-              {fin.ticketsSold}
-              {s.ticketCapacity != null && (
-                <span className="text-base text-muted-foreground">
-                  {" "}
-                  / {s.ticketCapacity}
-                </span>
-              )}
-            </p>
-            {fin.occupancyPercent != null && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {fin.occupancyPercent}% occupancy
+        <Link href={`/tours/${tourId}/shows/${s.id}/tickets`} className="block group">
+          <Card className="h-full transition-colors group-hover:border-foreground/30">
+            <CardHeader>
+              <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
+                {fin.isEstimated ? "Tickets (Est.)" : "Tickets"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl tabular-nums">
+                {fin.isEstimated
+                  ? (s.estTicketsSold ?? 0)
+                  : fin.ticketsSold}
+                {s.ticketCapacity != null && (
+                  <span className="text-base text-muted-foreground">
+                    {" "}
+                    / {s.ticketCapacity}
+                  </span>
+                )}
               </p>
-            )}
-          </CardContent>
-        </Card>
+              {fin.occupancyPercent != null && !fin.isEstimated && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {fin.occupancyPercent}% occupancy
+                </p>
+              )}
+              {fin.isEstimated && s.estTicketsSoldPct && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {s.estTicketsSoldPct}% of capacity
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1 group-hover:text-foreground transition-colors">
+                Click to edit →
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Revenue{fin.isEstimated && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
+              {fin.isEstimated ? "Revenue (Est.)" : "Revenue"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -225,7 +234,7 @@ export default async function ShowDetailPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-xs uppercase tracking-wider font-medium text-subtle">
-              Net{fin.isEstimated && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Est.</span>}
+              {fin.isEstimated ? "Net (Est.)" : "Net"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -239,31 +248,6 @@ export default async function ShowDetailPage({
           </CardContent>
         </Card>
       </div>
-
-      {/* Tickets card — always shown for estimated; actuals unlocked when completed */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TicketsCard
-            tourId={tourId}
-            showId={s.id}
-            data={{
-              ticketPricePence: s.ticketPricePence,
-              ticketCapacity: s.ticketCapacity,
-              estTicketsSold: s.estTicketsSold,
-              estTicketsSoldPct: s.estTicketsSoldPct,
-              ticketsSold: s.ticketsSold,
-              ticketsComped: s.ticketsComped,
-              actualRevenuePence: s.actualRevenuePence,
-              actualTicketPricePence: s.actualTicketPricePence,
-            } satisfies TicketsData}
-            showStatus={s.status}
-            action={updateTickets}
-          />
-        </CardContent>
-      </Card>
 
       {/* Cost breakdown table */}
       <Card>
