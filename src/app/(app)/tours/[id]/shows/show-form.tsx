@@ -22,6 +22,7 @@ import type { Show, Venue } from "@/db/schema";
 
 type Prefill = Partial<{
   venueId: string;
+  country: string;
   city: string;
   showTime: string;
   doorsTime: string;
