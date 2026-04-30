@@ -68,6 +68,15 @@ export function Sidebar({
 
       <div className="mt-6 border-t border-border pt-4 px-3">
         <p className="truncate text-xs text-subtle mb-2">{userEmail}</p>
+        <div className="space-y-1 mb-3">
+          <Link
+            href="/help"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <HelpIcon />
+            User guide
+          </Link>
+        </div>
         <form action={signOutAction}>
           <button
             type="submit"
@@ -124,6 +133,15 @@ function ComedianIcon() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <circle cx="8" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.4" />
       <path d="M3 14C3 11.5 5.2 10 8 10C10.8 10 13 11.5 13 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function HelpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6.2 6.2C6.2 5.1 7 4.4 8 4.4C9 4.4 9.8 5.1 9.8 6.2C9.8 7.1 9.2 7.7 8.5 8.1C8.2 8.3 8 8.6 8 9V9.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="8" cy="11.5" r="0.7" fill="currentColor" />
     </svg>
   );
 }
