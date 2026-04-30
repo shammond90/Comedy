@@ -63,9 +63,11 @@ export async function GET(
       and(eq(shows.orgId, t.orgId), isNull(shows.archivedAt)),
     );
   } else if (t.scope === "tour" && t.scopeId) {
+    // Tour scope: a collaborator on a shared tour may have a token whose
+    // org_id matches the tour's owning org (set at creation time). Trust
+    // the tour_id constraint alone — the token itself is the bearer credential.
     rows = await baseQuery.where(
       and(
-        eq(shows.orgId, t.orgId),
         eq(shows.tourId, t.scopeId),
         isNull(shows.archivedAt),
       ),

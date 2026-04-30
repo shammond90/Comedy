@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { calendarTokens, tours } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { listCollabTourIds } from "@/lib/permissions";
 import { PageHeader } from "@/components/app/page-header";
 import {
   Card,
@@ -29,11 +30,17 @@ export default async function CalendarsSettingsPage() {
     .where(eq(calendarTokens.userId, user.id))
     .orderBy(desc(calendarTokens.createdAt));
 
-  // Tour list for the scope picker (limited to org-owned tours, simplest scope)
+  // Tour list for the scope picker: own org's tours + tours shared via
+  // per-tour collaboration.
+  const collabTourIds = await listCollabTourIds(user.id);
   const tourRows = await db
     .select({ id: tours.id, name: tours.name })
     .from(tours)
-    .where(eq(tours.orgId, orgId))
+    .where(
+      collabTourIds.length > 0
+        ? or(eq(tours.orgId, orgId), inArray(tours.id, collabTourIds))
+        : eq(tours.orgId, orgId),
+    )
     .orderBy(desc(tours.createdAt));
 
   return (
