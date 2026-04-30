@@ -11,6 +11,7 @@ import {
   pgEnum,
   unique,
   index,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -78,6 +79,17 @@ export const memberRoleEnum = pgEnum("member_role", [
   "editor",
   "admin",
   "owner",
+]);
+
+export const lockResourceTypeEnum = pgEnum("lock_resource_type", [
+  "tour",
+  "show",
+  "comedian",
+  "venue",
+  "show_tickets",
+  "show_accommodation",
+  "show_travel",
+  "settings_team",
 ]);
 
 /* -------------------------------------------------------------------------- */
@@ -525,6 +537,39 @@ export const invitations = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                                 Edit locks                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Pessimistic per-resource edit lock. PK is composite (resource_type, resource_id).
+ * Lazy expiry: a lock is "free" if `expires_at < now()`.
+ */
+export const editLocks = pgTable(
+  "edit_locks",
+  {
+    resourceType: lockResourceTypeEnum("resource_type").notNull(),
+    resourceId: uuid("resource_id").notNull(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
+    acquiredAt: timestamp("acquired_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.resourceType, t.resourceId] }),
+    index("edit_locks_org_idx").on(t.orgId),
+    index("edit_locks_user_idx").on(t.userId),
+    index("edit_locks_expires_idx").on(t.expiresAt),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*                                  Relations                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -576,6 +621,8 @@ export type OrgMember = typeof orgMembers.$inferSelect;
 export type TourCollaborator = typeof tourCollaborators.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
+export type EditLock = typeof editLocks.$inferSelect;
+export type LockResourceType = (typeof lockResourceTypeEnum.enumValues)[number];
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };
