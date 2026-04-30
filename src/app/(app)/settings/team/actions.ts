@@ -316,7 +316,9 @@ const changeRoleSchema = z.object({
 const setFinancialsSchema = z.object({
   scope: z.enum(["org", "tour"]),
   id: z.string(),
-  canViewFinancials: z.coerce.boolean(),
+  canViewFinancials: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .transform((v) => v === true || v === "true"),
   tourId: z.string().uuid().optional(),
 });
 
