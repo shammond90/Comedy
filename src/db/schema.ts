@@ -617,6 +617,12 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "reminder_due",
 ]);
 
+export const calendarScopeEnum = pgEnum("calendar_scope", [
+  "org",
+  "tour",
+  "comedian",
+]);
+
 export const notifications = pgTable(
   "notifications",
   {
@@ -662,6 +668,30 @@ export const showTasks = pgTable(
   },
   (t) => [
     index("show_tasks_show_idx").on(t.showId, t.sortOrder),
+  ],
+);
+
+export const calendarTokens = pgTable(
+  "calendar_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    scope: calendarScopeEnum("scope").notNull(),
+    scopeId: uuid("scope_id"),
+    token: text("token").notNull().unique(),
+    label: text("label"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("calendar_tokens_user_idx").on(t.userId),
+    index("calendar_tokens_token_idx").on(t.token),
   ],
 );
 
@@ -725,6 +755,8 @@ export type Notification = typeof notifications.$inferSelect;
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
 export type ShowTask = typeof showTasks.$inferSelect;
 export type NewShowTask = typeof showTasks.$inferInsert;
+export type CalendarToken = typeof calendarTokens.$inferSelect;
+export type CalendarScope = (typeof calendarScopeEnum.enumValues)[number];
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };

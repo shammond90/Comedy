@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const sections = [
   { href: "/settings/team", label: "Team" },
+  { href: "/settings/calendars", label: "Calendars" },
 ];
 
 export default function SettingsLayout({
