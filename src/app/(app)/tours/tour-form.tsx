@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { tourStatusOptions, tourSchema } from "./schema";
-import type { ActionState } from "./actions";
+import type { ActionState } from "@/lib/actions";
 import type { Tour, Comedian } from "@/db/schema";
 
 type Props = {

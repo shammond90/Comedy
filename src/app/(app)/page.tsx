@@ -111,7 +111,7 @@ export default async function DashboardPage() {
     { label: "Comedians", value: comedianCount[0].value, href: "/comedians" },
   ];
 
-  const now = Date.now();
+  const nowMs = new Date().getTime();
 
   return (
     <div className="space-y-8">
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y divide-border">
                 {upcomingReminders.map((r) => {
-                  const overdue = r.dueAt.getTime() < now;
+                  const overdue = r.dueAt.getTime() < nowMs;
                   const href =
                     r.tourId && r.showId
                       ? `/tours/${r.tourId}/shows/${r.showId}`

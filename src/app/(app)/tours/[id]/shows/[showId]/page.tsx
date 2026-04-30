@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { tours, shows, venues, reminders } from "@/db/schema";
+import { tours, venues, reminders } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { Select } from "@/components/ui/input";
+import { Table, TBody, TR, TD } from "@/components/ui/table";
 import { formatDate, formatPence } from "@/lib/utils";
 import { getShowFinancials } from "@/lib/finance";
+import { reminderTypeLabels } from "@/lib/options";
 import { showStatusOptions } from "../schema";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusPill } from "@/components/ui/pill";
@@ -41,18 +42,6 @@ import {
   type AccommodationRow,
   type TravelRow,
 } from "./sub-forms";
-
-const reminderTypeLabels: Record<string, string> = {
-  venue_followup: "Venue follow-up",
-  rider_due: "Rider due",
-  marketing_deadline: "Marketing deadline",
-  settlement_due: "Settlement due",
-  tech_rider_confirm: "Tech rider confirm",
-  accommodation_booking: "Accommodation",
-  travel_booking: "Travel",
-  ticket_on_sale: "Tickets on sale",
-  custom: "Custom",
-};
 
 export default async function ShowDetailPage({
   params,

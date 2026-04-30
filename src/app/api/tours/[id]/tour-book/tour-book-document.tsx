@@ -913,7 +913,7 @@ function ContentsPage({
     <Page size="A4" style={styles.page}>
       <Text style={styles.sectionEyebrow}>Section 01</Text>
       <Text style={styles.sectionTitle}>Contents</Text>
-      <Text style={styles.sectionSub}>What's inside this tour book.</Text>
+      <Text style={styles.sectionSub}>What&apos;s inside this tour book.</Text>
 
       <View style={styles.tocRow}>
         <Text style={styles.tocIndex}>—</Text>

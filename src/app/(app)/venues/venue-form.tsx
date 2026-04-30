@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { venueTypeOptions, venueSchema } from "./schema";
-import type { ActionState } from "./actions";
+import type { ActionState } from "@/lib/actions";
 import type { Venue } from "@/db/schema";
 
 type Props = {

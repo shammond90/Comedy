@@ -44,6 +44,14 @@ export default async function VenueDetailPage({
     ["Notes", v.notes],
   ];
 
+  const hasSecondary =
+    v.secondaryContactName ||
+    v.secondaryContactRole ||
+    v.secondaryContactPhone ||
+    v.secondaryContactEmail;
+  const hasTechnical =
+    v.technicalContactName || v.technicalContactPhone || v.technicalContactEmail;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -88,6 +96,72 @@ export default async function VenueDetailPage({
           </dl>
         </CardContent>
       </Card>
+
+      {(hasSecondary || hasTechnical) && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {hasSecondary && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Secondary contact</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm">
+                {v.secondaryContactName && (
+                  <p>
+                    <span className="text-muted-foreground">Name:</span>{" "}
+                    {v.secondaryContactName}
+                    {v.secondaryContactRole && (
+                      <span className="text-muted-foreground"> · {v.secondaryContactRole}</span>
+                    )}
+                  </p>
+                )}
+                {v.secondaryContactPhone && (
+                  <p>
+                    <span className="text-muted-foreground">Phone:</span>{" "}
+                    {v.secondaryContactPhone}
+                  </p>
+                )}
+                {v.secondaryContactEmail && (
+                  <p>
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <a className="hover:underline" href={`mailto:${v.secondaryContactEmail}`}>
+                      {v.secondaryContactEmail}
+                    </a>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {hasTechnical && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Technical contact</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm">
+                {v.technicalContactName && (
+                  <p>
+                    <span className="text-muted-foreground">Name:</span>{" "}
+                    {v.technicalContactName}
+                  </p>
+                )}
+                {v.technicalContactPhone && (
+                  <p>
+                    <span className="text-muted-foreground">Phone:</span>{" "}
+                    {v.technicalContactPhone}
+                  </p>
+                )}
+                {v.technicalContactEmail && (
+                  <p>
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <a className="hover:underline" href={`mailto:${v.technicalContactEmail}`}>
+                      {v.technicalContactEmail}
+                    </a>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

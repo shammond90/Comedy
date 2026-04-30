@@ -1,31 +1,20 @@
 import { z } from "zod";
+import {
+  showStatusOptions,
+  showStatusValues,
+  settlementTypeOptions,
+  settlementTypeValues,
+  type ShowStatus,
+} from "@/lib/options";
 
-export const showStatusOptions = [
-  { value: "planned", label: "Planned" },
-  { value: "contacted", label: "Contacted" },
-  { value: "booked", label: "Booked" },
-  { value: "rider_sent", label: "Rider sent" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "completed", label: "Completed" },
-  { value: "unavailable", label: "Unavailable" },
-  { value: "cancelled", label: "Cancelled" },
-] as const;
-
-export const settlementTypeOptions = [
-  { value: "", label: "—" },
-  { value: "guarantee", label: "Guarantee" },
-  { value: "flat_fee", label: "Flat fee" },
-  { value: "split", label: "% split" },
-  { value: "guarantee_vs_split", label: "Guarantee vs split" },
-] as const;
+export { showStatusOptions, settlementTypeOptions, showStatusValues };
+export type { ShowStatus };
 
 const optionalString = z
   .string()
   .trim()
   .transform((v) => (v === "" ? null : v))
   .nullable();
-
-const optionalDate = optionalString;
 
 const optionalUuid = z
   .string()
@@ -92,16 +81,7 @@ export const showSchema = z.object({
   supportAct: optionalString,
   contractUrl: optionalUrl,
   notes: optionalString,
-  status: z.enum([
-    "planned",
-    "contacted",
-    "booked",
-    "rider_sent",
-    "confirmed",
-    "completed",
-    "unavailable",
-    "cancelled",
-  ]),
+  status: z.enum(showStatusValues),
 
   venueHireFee: optionalPence,
   venueDeposit: optionalPence,
@@ -112,12 +92,7 @@ export const showSchema = z.object({
 
   settlementType: z
     .union([
-      z.enum([
-        "guarantee",
-        "flat_fee",
-        "split",
-        "guarantee_vs_split",
-      ]),
+      z.enum(settlementTypeValues),
       z.literal(""),
     ])
     .transform((v) => (v === "" ? null : v))
@@ -168,27 +143,3 @@ export const showSchema = z.object({
     .optional()
     .transform((v) => v ?? null),
 });
-
-export const showStatusValues = [
-  "planned",
-  "contacted",
-  "booked",
-  "rider_sent",
-  "confirmed",
-  "completed",
-  "unavailable",
-  "cancelled",
-] as const;
-
-export type ShowStatus = (typeof showStatusValues)[number];
-
-export const showStatusBadge: Record<ShowStatus, string> = {
-  planned: "pill pill-planned",
-  contacted: "pill pill-contacted",
-  booked: "pill pill-booked",
-  rider_sent: "pill pill-rider_sent",
-  confirmed: "pill pill-confirmed",
-  completed: "pill pill-completed",
-  unavailable: "pill pill-unavailable",
-  cancelled: "pill pill-cancelled",
-};

@@ -6,18 +6,9 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { shows, venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { formToObject, type ActionState } from "@/lib/actions";
 import { showSchema } from "./schema";
 
-function formToObject(formData: FormData): Record<string, string> {
-  const obj: Record<string, string> = {};
-  for (const [k, v] of formData.entries()) obj[k] = String(v);
-  return obj;
-}
-
-export type ActionState = {
-  error?: string;
-  fieldErrors?: Record<string, string[]>;
-};
 
 async function resolveVenueId(
   orgId: string,

@@ -1,13 +1,7 @@
 import { z } from "zod";
+import { venueTypeOptions, venueTypeValues } from "@/lib/options";
 
-export const venueTypeOptions = [
-  { value: "comedy_club", label: "Comedy club" },
-  { value: "theatre", label: "Theatre" },
-  { value: "arena", label: "Arena" },
-  { value: "arts_centre", label: "Arts centre" },
-  { value: "pub", label: "Pub" },
-  { value: "other", label: "Other" },
-] as const;
+export { venueTypeOptions };
 
 const optionalString = z
   .string()
@@ -17,14 +11,7 @@ const optionalString = z
 
 export const venueSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
-  venueType: z.enum([
-    "comedy_club",
-    "theatre",
-    "arena",
-    "arts_centre",
-    "pub",
-    "other",
-  ]),
+  venueType: z.enum(venueTypeValues),
   addressLine1: optionalString,
   addressLine2: optionalString,
   city: z.string().trim().min(1, "City is required"),

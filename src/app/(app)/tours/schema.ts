@@ -1,12 +1,7 @@
 import { z } from "zod";
+import { tourStatusOptions, tourStatusValues } from "@/lib/options";
 
-export const tourStatusOptions = [
-  { value: "planning", label: "Planning" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "in_progress", label: "In progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-] as const;
+export { tourStatusOptions };
 
 const optionalString = z
   .string()
@@ -34,13 +29,7 @@ const optionalPence = z
 export const tourSchema = z.object({
   name: z.string().trim().min(1, "Tour name is required").max(200),
   comedianId: z.string().uuid("Select a comedian"),
-  status: z.enum([
-    "planning",
-    "confirmed",
-    "in_progress",
-    "completed",
-    "cancelled",
-  ]),
+  status: z.enum(tourStatusValues),
   startDate: optionalDate,
   endDate: optionalDate,
   description: optionalString,

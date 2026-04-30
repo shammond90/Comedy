@@ -17,7 +17,7 @@ import {
   settlementTypeOptions,
   showSchema,
 } from "./schema";
-import type { ActionState } from "./actions";
+import type { ActionState } from "@/lib/actions";
 import type { Show, Venue } from "@/db/schema";
 
 type Prefill = Partial<{

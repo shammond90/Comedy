@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { formatPence } from "@/lib/utils";
 
 type ServerAction = (formData: FormData) => Promise<void>;
 
@@ -360,11 +361,6 @@ function dayDelta(depIso: string | null, arrIso: string | null): number {
   return Math.round((arrDay.getTime() - depDay.getTime()) / 86_400_000);
 }
 
-function formatPenceDisplay(p: number | null | undefined): string {
-  if (p == null) return "—";
-  return `£${(p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function travelTypeLabel(t: string): string {
   return t.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 }
@@ -488,7 +484,7 @@ export function AccommodationsSection({
                           ? `Check-out: ${fmtDateStr(a.checkOut)}${a.checkOutTime ? ` ${fmtTime(a.checkOutTime)}` : ""}`
                           : "Dates TBC"}
                     {a.bookingReference ? `  ·  Ref: ${a.bookingReference}` : ""}
-                    {a.costPence != null ? `  ·  ${formatPenceDisplay(a.costPence)}` : ""}
+                    {a.costPence != null ? `  ·  ${formatPence(a.costPence)}` : ""}
                   </p>
                 </div>
                 <div className="flex gap-1 shrink-0">
@@ -694,7 +690,7 @@ export function TravelSection({
                 {/* Ref + cost */}
                 <div className="shrink-0 text-right text-xs text-muted-foreground space-y-0.5">
                   {tr.bookingReference && <p>{tr.bookingReference}</p>}
-                  {tr.costPence != null && <p className="tabular-nums">{formatPenceDisplay(tr.costPence)}</p>}
+                  {tr.costPence != null && <p className="tabular-nums">{formatPence(tr.costPence)}</p>}
                 </div>
 
                 {/* Actions */}

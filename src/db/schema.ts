@@ -327,8 +327,7 @@ export const shows = pgTable(
     marketingCopy: text("marketing_copy"),
     marketingNotes: text("marketing_notes"),
 
-    // Ticketing (V1: single price + capacity per show; ticket_tiers table
-    // available for future multi-tier support)
+    // Ticketing (V1: single price + capacity per show)
     ticketPricePence: integer("ticket_price_pence"),
     ticketCapacity: integer("ticket_capacity"),
     // Estimated (pre-show)
@@ -356,34 +355,6 @@ export const shows = pgTable(
     // no double-booking of the same comedian on the same date via a partial
     // unique index added in a migration (see post-generate notes in README).
   ],
-);
-
-/* -------------------------------------------------------------------------- */
-/*                              Show ticket tiers                             */
-/* -------------------------------------------------------------------------- */
-
-export const ticketTiers = pgTable(
-  "ticket_tiers",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    orgId: uuid("org_id")
-      .notNull()
-      .references(() => organisations.id, { onDelete: "cascade" }),
-    showId: uuid("show_id")
-      .notNull()
-      .references(() => shows.id, { onDelete: "cascade" }),
-
-    name: text("name").notNull(), // e.g. "Standard", "VIP", "Concession"
-    pricePence: integer("price_pence").notNull(),
-    capacity: integer("capacity"),
-    sold: integer("sold").notNull().default(0),
-    comped: integer("comped").notNull().default(0),
-
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (t) => [index("ticket_tiers_show_idx").on(t.showId)],
 );
 
 /* -------------------------------------------------------------------------- */
@@ -499,7 +470,6 @@ export const toursRelations = relations(tours, ({ one, many }) => ({
 export const showsRelations = relations(shows, ({ one, many }) => ({
   tour: one(tours, { fields: [shows.tourId], references: [tours.id] }),
   venue: one(venues, { fields: [shows.venueId], references: [venues.id] }),
-  ticketTiers: many(ticketTiers),
   accommodations: many(accommodations),
   travel: many(travel),
 }));
@@ -523,7 +493,6 @@ export type Comedian = typeof comedians.$inferSelect;
 export type NewComedian = typeof comedians.$inferInsert;
 export type Tour = typeof tours.$inferSelect;
 export type Show = typeof shows.$inferSelect;
-export type TicketTier = typeof ticketTiers.$inferSelect;
 export type Accommodation = typeof accommodations.$inferSelect;
 export type Travel = typeof travel.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;

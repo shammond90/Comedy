@@ -4,7 +4,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { tours, shows } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,

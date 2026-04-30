@@ -6,14 +6,17 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accommodations, travel, reminders, shows } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { parsePence } from "@/lib/utils";
+import {
+  reminderTypeValues,
+  travelTypeValues,
+  type ReminderType,
+  type TravelType,
+} from "@/lib/options";
 
-function parsePence(v: FormDataEntryValue | null): number | null {
+function parseFormPence(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
-  const s = String(v).trim();
-  if (!s) return null;
-  const n = Number(s.replace(/[£,\s]/g, ""));
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+  return parsePence(String(v));
 }
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v == null) return null;
@@ -45,7 +48,7 @@ export async function addAccommodation(formData: FormData) {
     checkOutTime: strOrNull(formData.get("checkOutTime")),
     bookingReference: strOrNull(formData.get("bookingReference")),
     contactPhone: strOrNull(formData.get("contactPhone")),
-    costPence: parsePence(formData.get("cost")),
+    costPence: parseFormPence(formData.get("cost")),
     notes: strOrNull(formData.get("notes")),
   });
   for (const p of pathsToRevalidate(tourId, showId)) revalidatePath(p);
@@ -68,7 +71,7 @@ export async function updateAccommodation(formData: FormData) {
       checkOutTime: strOrNull(formData.get("checkOutTime")),
       bookingReference: strOrNull(formData.get("bookingReference")),
       contactPhone: strOrNull(formData.get("contactPhone")),
-      costPence: parsePence(formData.get("cost")),
+      costPence: parseFormPence(formData.get("cost")),
       notes: strOrNull(formData.get("notes")),
     })
     .where(and(eq(accommodations.id, id), eq(accommodations.orgId, orgId)));
@@ -93,13 +96,12 @@ export async function addTravel(formData: FormData) {
   const { orgId } = await requireOrg();
   const tourId = String(formData.get("tourId"));
   const showId = String(formData.get("showId"));
-  const tt = String(formData.get("travelType"));
-  const allowed = ["train", "car", "flight", "tour_bus", "other"] as const;
+  const tt = String(formData.get("travelType")) as TravelType;
   await db.insert(travel).values({
     orgId,
     showId,
-    travelType: (allowed as readonly string[]).includes(tt)
-      ? (tt as (typeof allowed)[number])
+    travelType: (travelTypeValues as readonly string[]).includes(tt)
+      ? tt
       : "train",
     departureLocation: strOrNull(formData.get("departureLocation")),
     departureAt: strOrNull(formData.get("departureAt"))
@@ -110,7 +112,7 @@ export async function addTravel(formData: FormData) {
       ? new Date(String(formData.get("arrivalAt")))
       : null,
     bookingReference: strOrNull(formData.get("bookingReference")),
-    costPence: parsePence(formData.get("cost")),
+    costPence: parseFormPence(formData.get("cost")),
     notes: strOrNull(formData.get("notes")),
   });
   for (const p of pathsToRevalidate(tourId, showId)) revalidatePath(p);
@@ -122,13 +124,12 @@ export async function updateTravel(formData: FormData) {
   const id = String(formData.get("id"));
   const tourId = String(formData.get("tourId"));
   const showId = String(formData.get("showId"));
-  const tt = String(formData.get("travelType"));
-  const allowed = ["train", "car", "flight", "tour_bus", "other"] as const;
+  const tt = String(formData.get("travelType")) as TravelType;
   await db
     .update(travel)
     .set({
-      travelType: (allowed as readonly string[]).includes(tt)
-        ? (tt as (typeof allowed)[number])
+      travelType: (travelTypeValues as readonly string[]).includes(tt)
+        ? tt
         : "train",
       departureLocation: strOrNull(formData.get("departureLocation")),
       departureAt: strOrNull(formData.get("departureAt"))
@@ -139,7 +140,7 @@ export async function updateTravel(formData: FormData) {
         ? new Date(String(formData.get("arrivalAt")))
         : null,
       bookingReference: strOrNull(formData.get("bookingReference")),
-      costPence: parsePence(formData.get("cost")),
+      costPence: parseFormPence(formData.get("cost")),
       notes: strOrNull(formData.get("notes")),
     })
     .where(and(eq(travel.id, id), eq(travel.orgId, orgId)));
@@ -183,13 +184,13 @@ export async function updateTickets(formData: FormData) {
   await db
     .update(shows)
     .set({
-      ticketPricePence: parsePence(formData.get("ticketPrice")),
+      ticketPricePence: parseFormPence(formData.get("ticketPrice")),
       estTicketsSold: intOrNull(formData.get("estTicketsSold")),
       estTicketsSoldPct: pctOrNull(formData.get("estTicketsSoldPct")),
       ticketsSold: intOrNull(formData.get("ticketsSold")) ?? 0,
       ticketsComped: intOrNull(formData.get("ticketsComped")) ?? 0,
-      actualRevenuePence: parsePence(formData.get("actualRevenue")),
-      actualTicketPricePence: parsePence(formData.get("actualTicketPrice")),
+      actualRevenuePence: parseFormPence(formData.get("actualRevenue")),
+      actualTicketPricePence: parseFormPence(formData.get("actualTicketPrice")),
       updatedAt: new Date(),
     })
     .where(and(eq(shows.id, showId), eq(shows.orgId, orgId)));
@@ -199,23 +200,11 @@ export async function updateTickets(formData: FormData) {
 
 /* ------------------------------- Reminders ------------------------------- */
 
-const reminderTypes = [
-  "venue_followup",
-  "rider_due",
-  "marketing_deadline",
-  "settlement_due",
-  "tech_rider_confirm",
-  "accommodation_booking",
-  "travel_booking",
-  "ticket_on_sale",
-  "custom",
-] as const;
-
 export async function addReminder(formData: FormData) {
   const { orgId } = await requireOrg();
   const tourId = String(formData.get("tourId"));
   const showId = strOrNull(formData.get("showId"));
-  const type = String(formData.get("type")) as (typeof reminderTypes)[number];
+  const type = String(formData.get("type")) as ReminderType;
   const title = String(formData.get("title")).trim();
   const dueAtRaw = String(formData.get("dueAt")).trim();
   if (!title || !dueAtRaw) return;
@@ -223,7 +212,7 @@ export async function addReminder(formData: FormData) {
     orgId,
     tourId: tourId || null,
     showId,
-    type: (reminderTypes as readonly string[]).includes(type) ? type : "custom",
+    type: (reminderTypeValues as readonly string[]).includes(type) ? type : "custom",
     title,
     notes: strOrNull(formData.get("notes")),
     dueAt: new Date(dueAtRaw),

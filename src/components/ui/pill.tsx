@@ -44,24 +44,3 @@ export function StatusPill({
     </span>
   );
 }
-
-export function Pill({
-  children,
-  tone = "default",
-  className,
-}: {
-  children: React.ReactNode;
-  tone?: "default" | "accent" | "success" | "warning" | "destructive";
-  className?: string;
-}) {
-  const tones: Record<string, string> = {
-    default: "bg-surface-2 text-muted-foreground",
-    accent: "bg-accent-soft text-accent",
-    success: "bg-[var(--status-confirmed-bg)] text-[var(--status-confirmed-fg)]",
-    warning: "bg-[var(--status-contacted-bg)] text-[var(--status-contacted-fg)]",
-    destructive: "bg-[var(--status-unavailable-bg)] text-[var(--status-unavailable-fg)]",
-  };
-  return (
-    <span className={cn("pill", tones[tone], className)}>{children}</span>
-  );
-}
