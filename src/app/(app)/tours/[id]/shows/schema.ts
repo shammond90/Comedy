@@ -85,6 +85,7 @@ const optionalUrl = z
 export const showSchema = z.object({
   venueId: optionalUuid,
   showDate: z.string().min(1, "Date is required"),
+  country: optionalString,
   city: optionalString,
   showTime: optionalString,
   doorsTime: optionalString,
@@ -139,6 +140,13 @@ export const showSchema = z.object({
   // These inputs may be absent from the DOM when the panel is hidden,
   // so FormData sends undefined — accept that alongside empty string.
   newVenueName: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  newVenueCountry: z
     .string()
     .trim()
     .transform((v) => (v === "" ? null : v))

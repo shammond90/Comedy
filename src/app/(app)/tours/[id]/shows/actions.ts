@@ -21,7 +21,7 @@ export type ActionState = {
 
 async function resolveVenueId(
   orgId: string,
-  data: { venueId: string | null; newVenueName: string | null; newVenueCity: string | null; newVenueCapacity?: number | null },
+  data: { venueId: string | null; newVenueName: string | null; newVenueCountry?: string | null; newVenueCity: string | null; newVenueCapacity?: number | null },
 ): Promise<string | null> {
   if (data.venueId) return data.venueId;
   if (data.newVenueName) {
@@ -30,6 +30,7 @@ async function resolveVenueId(
       .values({
         orgId,
         name: data.newVenueName,
+        country: data.newVenueCountry ?? null,
         city: data.newVenueCity,
         capacity: data.newVenueCapacity ?? null,
         venueType: "comedy_club",
@@ -47,6 +48,7 @@ function mapToColumns(
   return {
     venueId,
     showDate: data.showDate,
+    country: data.country,
     city: data.city,
     showTime: data.showTime,
     doorsTime: data.doorsTime,

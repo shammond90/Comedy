@@ -45,9 +45,8 @@ export function VenueForm({ venue, action, submitLabel }: Props) {
         | "other",
       addressLine1: v?.addressLine1 ?? "",
       addressLine2: v?.addressLine2 ?? "",
-      city: v?.city ?? "", // required
-      postcode: v?.postcode ?? "",
       country: v?.country ?? "United Kingdom",
+      city: v?.city ?? "", // required
       capacity: (v?.capacity ?? "") as number | "",
       capacityNotes: v?.capacityNotes ?? "",
       primaryContactName: v?.primaryContactName ?? "",
@@ -115,9 +114,11 @@ export function VenueForm({ venue, action, submitLabel }: Props) {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Field label="Address line 1"><Input {...register("addressLine1")} /></Field>
           <Field label="Address line 2"><Input {...register("addressLine2")} /></Field>
-          <Field label="City" error={errors.city?.message}><Input {...register("city")} /></Field>
+          <Field label="Country" error={errors.country?.message ?? fe.country?.[0]}>
+            <Input {...register("country")} required placeholder="e.g. United Kingdom" />
+          </Field>
+          <Field label="City" error={errors.city?.message ?? fe.city?.[0]}><Input {...register("city")} required /></Field>
           <Field label="Postcode"><Input {...register("postcode")} /></Field>
-          <Field label="Country"><Input {...register("country")} /></Field>
         </CardContent>
       </Card>
 

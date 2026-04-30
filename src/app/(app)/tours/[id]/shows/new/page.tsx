@@ -32,7 +32,7 @@ export default async function NewShowPage({
   if (!t) notFound();
 
   const venueRows = await db
-    .select({ id: venues.id, name: venues.name, city: venues.city, capacity: venues.capacity })
+    .select({ id: venues.id, name: venues.name, city: venues.city, country: venues.country, capacity: venues.capacity })
     .from(venues)
     .where(and(eq(venues.orgId, orgId), isNull(venues.archivedAt)))
     .orderBy(asc(venues.name));

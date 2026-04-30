@@ -44,7 +44,7 @@ type Prefill = Partial<{
 type Props = {
   show?: Show;
   prefill?: Prefill;
-  venues: Pick<Venue, "id" | "name" | "city" | "capacity">[];
+  venues: Pick<Venue, "id" | "name" | "city" | "country" | "capacity">;
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   submitLabel: string;
 };
@@ -68,17 +68,29 @@ export function ShowForm({
 
   const [capacityVal, setCapacityVal] = useState(s?.ticketCapacity?.toString() ?? "");
   const [quickAddCityError, setQuickAddCityError] = useState("");
+  const [quickAddCountryError, setQuickAddCountryError] = useState("");
 
   const [selectedVenueId, setSelectedVenueId] = useState(s?.venueId ?? p.venueId ?? "");
+  const [selectedCountry, setSelectedCountry] = useState(
+    () => venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? s?.country ?? p.country ?? ""
+  );
   const [selectedCity, setSelectedCity] = useState(s?.city ?? p.city ?? "");
 
-  const uniqueCities = [...new Set(
-    venues.map((v) => v.city).filter((c): c is string => !!c),
+  const uniqueCountries = [...new Set(
+    venues.map((v) => v.country).filter((c): c is string => !!c),
   )].sort();
 
-  const filteredVenues = selectedCity
-    ? venues.filter((v) => v.city === selectedCity)
-    : venues;
+  const uniqueCities = [...new Set(
+    venues
+      .filter((v) => !selectedCountry || v.country === selectedCountry)
+      .map((v) => v.city)
+      .filter((c): c is string => !!c),
+  )].sort();
+
+  const filteredVenues = venues.filter((v) =>
+    (!selectedCountry || v.country === selectedCountry) &&
+    (!selectedCity || v.city === selectedCity)
+  );
 
   const {
     register,
@@ -101,6 +113,7 @@ export function ShowForm({
         | "cancelled"
         | "unavailable",
       venueId: s?.venueId ?? p.venueId ?? "",
+      country: venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? s?.country ?? p.country ?? "",
       city: s?.city ?? p.city ?? "",
       doorsTime: s?.doorsTime ?? p.doorsTime ?? "",
       showTime: s?.showTime ?? p.showTime ?? "",
@@ -128,6 +141,7 @@ export function ShowForm({
       marketingCopy: s?.marketingCopy ?? p.marketingCopy ?? "",
       marketingNotes: s?.marketingNotes ?? p.marketingNotes ?? "",
       newVenueName: "",
+      newVenueCountry: "",
       newVenueCity: "",
       newVenueCapacity: "",
     },
@@ -135,13 +149,26 @@ export function ShowForm({
 
   const onSubmit = handleSubmit((_data, event) => {
     if (quickAdd) {
-      const cityField = (event!.target as HTMLFormElement).elements.namedItem("newVenueCity") as HTMLInputElement | null;
-      if (!cityField?.value?.trim()) {
-        setQuickAddCityError("City is required when adding a new venue");
-        return;
+      const form = event!.target as HTMLFormElement;
+      const countryField = form.elements.namedItem("newVenueCountry") as HTMLInputElement | null;
+      const cityField = form.elements.namedItem("newVenueCity") as HTMLInputElement | null;
+      let hasError = false;
+      if (!countryField?.value?.trim()) {
+        setQuickAddCountryError("Country is required");
+        hasError = true;
+      } else {
+        setQuickAddCountryError("");
       }
+      if (!cityField?.value?.trim()) {
+        setQuickAddCityError("City is required");
+        hasError = true;
+      } else {
+        setQuickAddCityError("");
+      }
+      if (hasError) return;
     }
     setQuickAddCityError("");
+    setQuickAddCountryError("");
     const formData = new FormData(event!.target as HTMLFormElement);
     startTransition(async () => {
       const result = await action({}, formData);
@@ -161,127 +188,177 @@ export function ShowForm({
           <CardTitle>Show details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          {/* Row 1: Date | Status */}
           <Field label="Date" error={errors.showDate?.message ?? fe.showDate?.[0]}>
-            <Input
-              type="date"
-              {...register("showDate")}
-            />
+            <Input type="date" {...register("showDate")} />
           </Field>
           <Field label="Status" error={errors.status?.message ?? fe.status?.[0]}>
             <Select {...register("status")}>
               {showStatusOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </Select>
           </Field>
 
-          {/* Venue, City, Capacity — grouped */}
-          <div className="md:col-span-2 grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <Field label="Venue" error={errors.venueId?.message ?? fe.venueId?.[0]}>
-                <div className="space-y-2">
-                  <Select
-                    {...register("venueId")}
-                    value={selectedVenueId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedVenueId(id);
-                      setValue("venueId", id, { shouldValidate: true });
-                      const venue = venues.find((v) => v.id === id);
-                      if (venue?.city) {
-                        setSelectedCity(venue.city);
-                        setValue("city", venue.city, { shouldValidate: true });
-                      }
-                      if (venue?.capacity != null) {
-                        setCapacityVal(venue.capacity.toString());
-                        setValue("ticketCapacity", venue.capacity.toString(), { shouldValidate: true });
-                      }
-                    }}
-                    disabled={quickAdd}
-                  >
-                    <option value="">— Select a venue —</option>
-                    {filteredVenues.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <button
-                    type="button"
-                    onClick={() => setQuickAdd((v) => !v)}
-                    className="text-xs text-muted-foreground underline"
-                  >
-                    {quickAdd ? "Cancel quick add" : "+ Quick-add a new venue"}
-                  </button>
-                  {quickAdd && (
-                    <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
-                      <Input
-                        {...register("newVenueName")}
-                        placeholder="Venue name"
-                      />
-                      <Input
-                        {...register("newVenueCity")}
-                        placeholder="City *"
-                        aria-required="true"
-                      />
-                      {quickAddCityError && (
-                        <p className="text-xs text-destructive">{quickAddCityError}</p>
-                      )}
-                      <Input
-                        {...register("newVenueCapacity")}
-                        type="number"
-                        min={0}
-                        placeholder="Capacity (optional)"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        A minimal venue record will be created. Edit it later in
-                        Venues for full details.
-                      </p>
-                    </div>
-                  )}
+          {/* Row 2: Country | City */}
+          <Field label="Country">
+            <Select
+              {...register("country")}
+              value={selectedCountry}
+              onChange={(e) => {
+                const country = e.target.value;
+                setSelectedCountry(country);
+                setValue("country", country, { shouldValidate: true });
+                // Clear city/venue if they no longer match
+                if (selectedCity) {
+                  const cityStillValid = venues.some(
+                    (v) => v.city === selectedCity && (!country || v.country === country)
+                  );
+                  if (!cityStillValid) {
+                    setSelectedCity("");
+                    setValue("city", "", { shouldValidate: true });
+                    setSelectedVenueId("");
+                    setValue("venueId", "", { shouldValidate: true });
+                  }
+                }
+                if (selectedVenueId) {
+                  const venue = venues.find((v) => v.id === selectedVenueId);
+                  if (venue && country && venue.country !== country) {
+                    setSelectedVenueId("");
+                    setValue("venueId", "", { shouldValidate: true });
+                  }
+                }
+              }}
+            >
+              <option value="">— All countries —</option>
+              {uniqueCountries.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="City">
+            <Select
+              {...register("city")}
+              value={selectedCity}
+              onChange={(e) => {
+                const city = e.target.value;
+                setSelectedCity(city);
+                setValue("city", city, { shouldValidate: true });
+                // Auto-select country if unique for this city
+                if (city) {
+                  const matchingCountries = [...new Set(
+                    venues.filter((v) => v.city === city).map((v) => v.country).filter(Boolean)
+                  )];
+                  if (matchingCountries.length === 1) {
+                    setSelectedCountry(matchingCountries[0] as string);
+                    setValue("country", matchingCountries[0] as string, { shouldValidate: true });
+                  }
+                }
+                // Clear venue if it's not in this city
+                if (selectedVenueId) {
+                  const venue = venues.find((v) => v.id === selectedVenueId);
+                  if (venue && venue.city !== city) {
+                    setSelectedVenueId("");
+                    setValue("venueId", "", { shouldValidate: true });
+                  }
+                }
+              }}
+            >
+              <option value="">— All cities —</option>
+              {uniqueCities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
+          </Field>
+
+          {/* Row 3: Venue | Capacity */}
+          <Field label="Venue" error={errors.venueId?.message ?? fe.venueId?.[0]}>
+            <div className="space-y-2">
+              <Select
+                {...register("venueId")}
+                value={selectedVenueId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedVenueId(id);
+                  setValue("venueId", id, { shouldValidate: true });
+                  const venue = venues.find((v) => v.id === id);
+                  if (venue?.country) {
+                    setSelectedCountry(venue.country);
+                    setValue("country", venue.country, { shouldValidate: true });
+                  }
+                  if (venue?.city) {
+                    setSelectedCity(venue.city);
+                    setValue("city", venue.city, { shouldValidate: true });
+                  }
+                  if (venue?.capacity != null) {
+                    setCapacityVal(venue.capacity.toString());
+                    setValue("ticketCapacity", venue.capacity.toString(), { shouldValidate: true });
+                  }
+                }}
+                disabled={quickAdd}
+              >
+                <option value="">— Select a venue —</option>
+                {filteredVenues.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </Select>
+              <button
+                type="button"
+                onClick={() => setQuickAdd((v) => !v)}
+                className="text-xs text-muted-foreground underline"
+              >
+                {quickAdd ? "Cancel quick add" : "+ Quick-add a new venue"}
+              </button>
+              {quickAdd && (
+                <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
+                  <Input {...register("newVenueName")} placeholder="Venue name" />
+                  <div>
+                    <Input
+                      {...register("newVenueCountry")}
+                      placeholder="Country *"
+                      aria-required="true"
+                    />
+                    {quickAddCountryError && (
+                      <p className="text-xs text-destructive mt-1">{quickAddCountryError}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Input
+                      {...register("newVenueCity")}
+                      placeholder="City *"
+                      aria-required="true"
+                    />
+                    {quickAddCityError && (
+                      <p className="text-xs text-destructive mt-1">{quickAddCityError}</p>
+                    )}
+                  </div>
+                  <Input
+                    {...register("newVenueCapacity")}
+                    type="number"
+                    min={0}
+                    placeholder="Capacity (optional)"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A minimal venue record will be created. Edit it later in Venues for full details.
+                  </p>
                 </div>
-              </Field>
+              )}
             </div>
-            <div className="grid gap-4">
-              <Field label="City">
-                <Select
-                  {...register("city")}
-                  value={selectedCity}
-                  onChange={(e) => {
-                    const city = e.target.value;
-                    setSelectedCity(city);
-                    setValue("city", city, { shouldValidate: true });
-                    if (selectedVenueId) {
-                      const venue = venues.find((v) => v.id === selectedVenueId);
-                      if (venue && venue.city !== city) {
-                        setSelectedVenueId("");
-                        setValue("venueId", "", { shouldValidate: true });
-                      }
-                    }
-                  }}
-                >
-                  <option value="">— All cities —</option>
-                  {uniqueCities.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Capacity" hint="Pre-filled from venue; override per show">
-                <Input
-                  type="number"
-                  min={0}
-                  {...register("ticketCapacity")}
-                  value={capacityVal}
-                  onChange={(e) => {
-                    setCapacityVal(e.target.value);
-                    setValue("ticketCapacity", e.target.value);
-                  }}
-                />
-              </Field>
-            </div>
-          </div>
+          </Field>
+          <Field label="Capacity" hint="Pre-filled from venue; override per show">
+            <Input
+              type="number"
+              min={0}
+              {...register("ticketCapacity")}
+              value={capacityVal}
+              onChange={(e) => {
+                setCapacityVal(e.target.value);
+                setValue("ticketCapacity", e.target.value);
+              }}
+            />
+          </Field>
+
+          {/* Remaining fields */}
           <Field label="Doors time">
             <Input type="time" {...register("doorsTime")} />
           </Field>
@@ -296,11 +373,7 @@ export function ShowForm({
             hint="Link to the deal memo / contract document"
             error={errors.contractUrl?.message ?? fe.contractUrl?.[0]}
           >
-            <Input
-              type="url"
-              {...register("contractUrl")}
-              placeholder="https://…"
-            />
+            <Input type="url" {...register("contractUrl")} placeholder="https://…" />
           </Field>
           <Field label="Notes">
             <Textarea {...register("notes")} rows={3} />
