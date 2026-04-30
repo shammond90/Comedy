@@ -3,6 +3,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { tours, comedians } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { canEdit, getOrgRole, visibleTourCondition } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { PageHeader } from "@/components/app/page-header";
@@ -10,7 +11,15 @@ import { StatusPill } from "@/components/ui/pill";
 import { formatDate } from "@/lib/utils";
 
 export default async function ToursPage() {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
+  const orgRole = await getOrgRole(user.id, orgId);
+  const canCreate = canEdit(orgRole?.role ?? null);
+
+  const visibility = await visibleTourCondition(user.id);
+  const where = visibility
+    ? and(isNull(tours.archivedAt), visibility)
+    : isNull(tours.archivedAt);
+
   const rows = await db
     .select({
       id: tours.id,
@@ -22,7 +31,7 @@ export default async function ToursPage() {
     })
     .from(tours)
     .leftJoin(comedians, eq(tours.comedianId, comedians.id))
-    .where(and(eq(tours.orgId, orgId), isNull(tours.archivedAt)))
+    .where(where)
     .orderBy(asc(tours.startDate));
 
   return (
@@ -32,9 +41,11 @@ export default async function ToursPage() {
         title="Tours"
         description={`${rows.length} ${rows.length === 1 ? "tour" : "tours"} in flight`}
         actions={
-          <Link href="/tours/new">
-            <Button variant="accent">Add tour</Button>
-          </Link>
+          canCreate ? (
+            <Link href="/tours/new">
+              <Button variant="accent">Add tour</Button>
+            </Link>
+          ) : null
         }
       />
 

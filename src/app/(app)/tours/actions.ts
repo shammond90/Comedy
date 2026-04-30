@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { tours } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { canDelete, canEdit, getOrgRole, getTourRole } from "@/lib/permissions";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { tourSchema } from "./schema";
 
@@ -13,7 +14,11 @@ export async function createTourAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
+  const orgRole = await getOrgRole(user.id, orgId);
+  if (!canEdit(orgRole?.role ?? null)) {
+    return { error: "You don't have permission to create tours." };
+  }
   const parsed = tourSchema.safeParse(formToObject(formData));
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -32,7 +37,11 @@ export async function updateTourAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const { orgId } = await requireOrg();
+  const { user } = await requireOrg();
+  const tourRole = await getTourRole(user.id, id);
+  if (!canEdit(tourRole?.role ?? null)) {
+    return { error: "You don't have permission to edit this tour." };
+  }
   const parsed = tourSchema.safeParse(formToObject(formData));
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -41,7 +50,7 @@ export async function updateTourAction(
   await db
     .update(tours)
     .set({ ...rest, budgetPence: budget, updatedAt: new Date() })
-    .where(and(eq(tours.id, id), eq(tours.orgId, orgId)));
+    .where(eq(tours.id, id));
   revalidatePath("/tours");
   revalidatePath(`/tours/${id}`);
   redirect(`/tours/${id}`);
@@ -49,11 +58,13 @@ export async function updateTourAction(
 
 export async function deleteTourAction(formData: FormData) {
   const id = String(formData.get("id"));
-  const { orgId } = await requireOrg();
+  const { user } = await requireOrg();
+  const tourRole = await getTourRole(user.id, id);
+  if (!canDelete(tourRole?.role ?? null)) return;
   await db
     .update(tours)
     .set({ archivedAt: new Date() })
-    .where(and(eq(tours.id, id), eq(tours.orgId, orgId)));
+    .where(eq(tours.id, id));
   revalidatePath("/tours");
   redirect("/tours");
 }

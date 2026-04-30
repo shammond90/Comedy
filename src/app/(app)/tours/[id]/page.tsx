@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { tours, comedians, venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { canDelete, canEdit, canInvite, getTourRole } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,7 +53,14 @@ export default async function TourDetailPage({
     : "date";
   const dir: SortDir = dirParam === "desc" ? "desc" : "asc";
 
-  const { orgId } = await requireOrg();
+  const { user } = await requireOrg();
+
+  const tourRole = await getTourRole(user.id, id);
+  if (!tourRole) notFound();
+  const showFinancials = tourRole.canViewFinancials;
+  const allowEdit = canEdit(tourRole.role);
+  const allowDelete = canDelete(tourRole.role);
+  const allowInvite = canInvite(tourRole.role);
 
   const [t] = await db
     .select({
@@ -65,16 +73,19 @@ export default async function TourDetailPage({
       budgetPence: tours.budgetPence,
       comedianId: tours.comedianId,
       comedianName: comedians.stageName,
+      tourOrgId: tours.orgId,
     })
     .from(tours)
     .leftJoin(comedians, eq(tours.comedianId, comedians.id))
-    .where(and(eq(tours.id, id), eq(tours.orgId, orgId)))
+    .where(eq(tours.id, id))
     .limit(1);
   if (!t) notFound();
 
-  const { perShow, totals, showCount } = await getTourFinancials(orgId, t.id);
+  const tourOrgId = t.tourOrgId;
 
-  // Fetch venue names for the agenda
+  const { perShow, totals, showCount } = await getTourFinancials(tourOrgId, t.id);
+
+  // Fetch venue names for the agenda (use the tour's org_id, not necessarily the user's primary org)
   const venueIds = perShow
     .map((p) => p.show.venueId)
     .filter((v): v is string => v != null);
@@ -82,7 +93,7 @@ export default async function TourDetailPage({
     ? await db
         .select({ id: venues.id, name: venues.name, city: venues.city })
         .from(venues)
-        .where(and(eq(venues.orgId, orgId), isNull(venues.archivedAt)))
+        .where(and(eq(venues.orgId, tourOrgId), isNull(venues.archivedAt)))
     : [];
   const venueMap = new Map(venueRows.map((v) => [v.id, v]));
 
@@ -137,9 +148,16 @@ export default async function TourDetailPage({
             <Link href={`/tours/${t.id}/itinerary`}>
               <Button variant="outline">Itinerary</Button>
             </Link>
-            <Link href={`/tours/${t.id}/edit`}>
-              <Button variant="outline">Edit</Button>
-            </Link>
+            {allowEdit && (
+              <Link href={`/tours/${t.id}/edit`}>
+                <Button variant="outline">Edit</Button>
+              </Link>
+            )}
+            {allowInvite && (
+              <Link href={`/tours/${t.id}/team`}>
+                <Button variant="outline">Team</Button>
+              </Link>
+            )}
             <a
               href={`/api/tours/${t.id}/tour-book`}
               target="_blank"
@@ -147,61 +165,68 @@ export default async function TourDetailPage({
             >
               <Button variant="outline">Tour book PDF</Button>
             </a>
-            <form action={deleteTourAction}>
-              <input type="hidden" name="id" value={t.id} />
-              <Button type="submit" variant="destructive" formNoValidate>
-                Archive
-              </Button>
-            </form>
+            {allowDelete && (
+              <form action={deleteTourAction}>
+                <input type="hidden" name="id" value={t.id} />
+                <Button type="submit" variant="destructive" formNoValidate>
+                  Archive
+                </Button>
+              </form>
+            )}
           </>
         }
       />
 
       {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className={`grid gap-4 ${showFinancials ? "md:grid-cols-4" : "md:grid-cols-2"}`}>
         <KpiCard label="Shows" value={String(showCount)} />
         <KpiCard label="Tickets sold" value={totals.ticketsSold.toLocaleString("en-GB")} />
-        <KpiCard
-          label={
-            <>
-              Revenue
-              {totals.hasEstimates && <EstChip />}
-            </>
-          }
-          value={formatPence(totals.revenuePence)}
-        />
-        <KpiCard
-          label={
-            <>
-              Net P&amp;L
-              {totals.hasEstimates && <EstChip />}
-            </>
-          }
-          value={formatPence(totals.netPence)}
-          valueClassName={totals.netPence < 0 ? "text-destructive" : undefined}
-          sub={
-            <>
-              {marginPct != null && (
+        {showFinancials && (
+          <>
+            <KpiCard
+              label={
                 <>
-                  Margin{" "}
-                  <span
-                    className={`font-medium tabular-nums ${
-                      marginPct < 0 ? "text-destructive" : "text-foreground"
-                    }`}
-                  >
-                    {marginPct}%
-                  </span>
-                  {" · "}
+                  Revenue
+                  {totals.hasEstimates && <EstChip />}
                 </>
-              )}
-              Costs {formatPence(totals.costsPence)}
-            </>
-          }
-        />
+              }
+              value={formatPence(totals.revenuePence)}
+            />
+            <KpiCard
+              label={
+                <>
+                  Net P&amp;L
+                  {totals.hasEstimates && <EstChip />}
+                </>
+              }
+              value={formatPence(totals.netPence)}
+              valueClassName={totals.netPence < 0 ? "text-destructive" : undefined}
+              sub={
+                <>
+                  {marginPct != null && (
+                    <>
+                      Margin{" "}
+                      <span
+                        className={`font-medium tabular-nums ${
+                          marginPct < 0 ? "text-destructive" : "text-foreground"
+                        }`}
+                      >
+                        {marginPct}%
+                      </span>
+                      {" · "}
+                    </>
+                  )}
+                  Costs {formatPence(totals.costsPence)}
+                </>
+              }
+            />
+          </>
+        )}
       </div>
 
       {/* Cost breakdown + status breakdown */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className={`grid gap-6 ${showFinancials ? "md:grid-cols-3" : "md:grid-cols-1"}`}>
+        {showFinancials && (
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Cost breakdown</CardTitle>
@@ -253,6 +278,7 @@ export default async function TourDetailPage({
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -287,9 +313,11 @@ export default async function TourDetailPage({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Shows</CardTitle>
-          <Link href={`/tours/${t.id}/shows/new`}>
-            <Button size="sm">Add show</Button>
-          </Link>
+          {allowEdit && (
+            <Link href={`/tours/${t.id}/shows/new`}>
+              <Button size="sm">Add show</Button>
+            </Link>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {perShow.length === 0 ? (
@@ -304,8 +332,8 @@ export default async function TourDetailPage({
                   <SortableTH tourId={t.id} k="city" sort={sort} dir={dir}>City / venue</SortableTH>
                   <SortableTH tourId={t.id} k="status" sort={sort} dir={dir}>Status</SortableTH>
                   <SortableTH tourId={t.id} k="sold" sort={sort} dir={dir} align="right">Sold / cap</SortableTH>
-                  <SortableTH tourId={t.id} k="revenue" sort={sort} dir={dir} align="right">Revenue</SortableTH>
-                  <SortableTH tourId={t.id} k="net" sort={sort} dir={dir} align="right">Net</SortableTH>
+                  {showFinancials && <SortableTH tourId={t.id} k="revenue" sort={sort} dir={dir} align="right">Revenue</SortableTH>}
+                  {showFinancials && <SortableTH tourId={t.id} k="net" sort={sort} dir={dir} align="right">Net</SortableTH>}
                 </TR>
               </THead>
               <TBody>
@@ -338,18 +366,22 @@ export default async function TourDetailPage({
                           ? ` / ${show.ticketCapacity}`
                           : ""}
                       </TD>
-                      <TD className="text-right tabular-nums">
-                        {formatPence(fin.ticketRevenuePence)}
-                        {fin.isEstimated && <EstChip />}
-                      </TD>
-                      <TD
-                        className={`text-right tabular-nums ${
-                          fin.netPence < 0 ? "text-destructive" : ""
-                        }`}
-                      >
-                        {formatPence(fin.netPence)}
-                        {fin.isEstimated && <EstChip />}
-                      </TD>
+                      {showFinancials && (
+                        <TD className="text-right tabular-nums">
+                          {formatPence(fin.ticketRevenuePence)}
+                          {fin.isEstimated && <EstChip />}
+                        </TD>
+                      )}
+                      {showFinancials && (
+                        <TD
+                          className={`text-right tabular-nums ${
+                            fin.netPence < 0 ? "text-destructive" : ""
+                          }`}
+                        >
+                          {formatPence(fin.netPence)}
+                          {fin.isEstimated && <EstChip />}
+                        </TD>
+                      )}
                     </TR>
                   );
                 })}
@@ -359,7 +391,7 @@ export default async function TourDetailPage({
         </CardContent>
       </Card>
 
-      {t.budgetPence != null && (
+      {showFinancials && t.budgetPence != null && (
         <Card>
           <CardHeader>
             <CardTitle>Tour budget</CardTitle>

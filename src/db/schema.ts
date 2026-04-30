@@ -73,6 +73,13 @@ export const reminderTypeEnum = pgEnum("reminder_type", [
   "custom",
 ]);
 
+export const memberRoleEnum = pgEnum("member_role", [
+  "viewer",
+  "editor",
+  "admin",
+  "owner",
+]);
+
 /* -------------------------------------------------------------------------- */
 /*                              Multi-tenancy root                            */
 /* -------------------------------------------------------------------------- */
@@ -103,7 +110,8 @@ export const orgMembers = pgTable(
     // References auth.users(id) in Supabase. Not a FK because that schema is
     // managed by Supabase Auth.
     userId: uuid("user_id").notNull(),
-    role: text("role").notNull().default("owner"),
+    role: memberRoleEnum("role").notNull().default("editor"),
+    canViewFinancials: boolean("can_view_financials").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -221,6 +229,10 @@ export const comedians = pgTable(
     socialTikTok: text("social_tiktok"),
     socialOther: text("social_other"),
 
+    // Optional link to a real user account (when the comedian themselves logs
+    // in). References auth.users(id) — not a hard FK.
+    userId: uuid("user_id"),
+
     notes: text("notes"),
 
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -231,7 +243,10 @@ export const comedians = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("comedians_org_idx").on(t.orgId)],
+  (t) => [
+    index("comedians_org_idx").on(t.orgId),
+    index("comedians_user_idx").on(t.userId),
+  ],
 );
 
 /* -------------------------------------------------------------------------- */
@@ -449,6 +464,67 @@ export const reminders = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                              Sharing & invites                             */
+/* -------------------------------------------------------------------------- */
+
+/** Per-tour collaborator with optional role override. */
+export const tourCollaborators = pgTable(
+  "tour_collaborators",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    tourId: uuid("tour_id")
+      .notNull()
+      .references(() => tours.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
+    role: memberRoleEnum("role").notNull().default("editor"),
+    canViewFinancials: boolean("can_view_financials").notNull().default(false),
+    invitedBy: uuid("invited_by"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    unique("tour_collaborators_tour_user_unique").on(t.tourId, t.userId),
+    index("tour_collaborators_user_idx").on(t.userId),
+    index("tour_collaborators_org_idx").on(t.orgId),
+  ],
+);
+
+/**
+ * Invitation links. `tour_id` null = org-wide invite. Tokens are
+ * cryptographically random and single-use within the expiry window.
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    tourId: uuid("tour_id").references(() => tours.id, { onDelete: "cascade" }),
+    email: text("email"),
+    role: memberRoleEnum("role").notNull().default("editor"),
+    canViewFinancials: boolean("can_view_financials").notNull().default(true),
+    token: text("token").notNull().unique(),
+    invitedBy: uuid("invited_by").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: uuid("accepted_by"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("invitations_org_idx").on(t.orgId),
+    index("invitations_email_idx").on(t.email),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*                                  Relations                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -496,6 +572,10 @@ export type Show = typeof shows.$inferSelect;
 export type Accommodation = typeof accommodations.$inferSelect;
 export type Travel = typeof travel.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;
+export type OrgMember = typeof orgMembers.$inferSelect;
+export type TourCollaborator = typeof tourCollaborators.$inferSelect;
+export type Invitation = typeof invitations.$inferSelect;
+export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };

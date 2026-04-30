@@ -12,6 +12,7 @@ const items: Item[] = [
   { href: "/calendar", label: "Calendar", icon: <CalendarIcon /> },
   { href: "/venues", label: "Venues", icon: <VenueIcon /> },
   { href: "/comedians", label: "Comedians", icon: <ComedianIcon /> },
+  { href: "/settings/team", label: "Team", icon: <TeamIcon /> },
 ];
 
 export function Sidebar({
@@ -133,6 +134,16 @@ function ComedianIcon() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <circle cx="8" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.4" />
       <path d="M3 14C3 11.5 5.2 10 8 10C10.8 10 13 11.5 13 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function TeamIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="11.5" cy="6.5" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M2 13.5C2 11.6 3.8 10.3 6 10.3C8.2 10.3 10 11.6 10 13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M10.5 13.5C10.5 12.1 12 11 13.5 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
