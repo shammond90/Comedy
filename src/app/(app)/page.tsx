@@ -8,7 +8,8 @@ import {
   shows,
   reminders,
 } from "@/db/schema";
-import { and, asc, eq, gte, isNull, count, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, count, lte, or } from "drizzle-orm";
+import { listCollabTourIds } from "@/lib/permissions";
 import {
   Card,
   CardContent,
@@ -26,82 +27,106 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
   const today = new Date().toISOString().slice(0, 10);
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 14);
 
-  const [venueCount, comedianCount, tourCount, upcomingShowCount] =
-    await Promise.all([
-      db
-        .select({ value: count() })
-        .from(venues)
-        .where(and(eq(venues.orgId, orgId), isNull(venues.archivedAt))),
-      db
-        .select({ value: count() })
-        .from(comedians)
-        .where(and(eq(comedians.orgId, orgId), isNull(comedians.archivedAt))),
-      db
-        .select({ value: count() })
-        .from(tours)
-        .where(and(eq(tours.orgId, orgId), isNull(tours.archivedAt))),
-      db
-        .select({ value: count() })
-        .from(shows)
-        .where(
-          and(
-            eq(shows.orgId, orgId),
-            gte(shows.showDate, today),
-            isNull(shows.archivedAt),
+  // Tours visible to this user: own org's tours + tours shared via per-tour
+  // collaboration. We compute the full id list once and reuse it everywhere.
+  const collabTourIds = await listCollabTourIds(user.id);
+  const accessibleTours = await db
+    .select({ id: tours.id })
+    .from(tours)
+    .where(
+      and(
+        isNull(tours.archivedAt),
+        collabTourIds.length > 0
+          ? or(eq(tours.orgId, orgId), inArray(tours.id, collabTourIds))
+          : eq(tours.orgId, orgId),
+      ),
+    );
+  const visibleTourIds = accessibleTours.map((t) => t.id);
+  const tourCountValue = visibleTourIds.length;
+
+  const [venueCount, comedianCount, upcomingShowCount] = await Promise.all([
+    db
+      .select({ value: count() })
+      .from(venues)
+      .where(and(eq(venues.orgId, orgId), isNull(venues.archivedAt))),
+    db
+      .select({ value: count() })
+      .from(comedians)
+      .where(and(eq(comedians.orgId, orgId), isNull(comedians.archivedAt))),
+    visibleTourIds.length === 0
+      ? Promise.resolve([{ value: 0 }])
+      : db
+          .select({ value: count() })
+          .from(shows)
+          .where(
+            and(
+              inArray(shows.tourId, visibleTourIds),
+              gte(shows.showDate, today),
+              isNull(shows.archivedAt),
+            ),
           ),
-        ),
-    ]);
+  ]);
 
-  const upcomingReminders = await db
-    .select({
-      id: reminders.id,
-      title: reminders.title,
-      type: reminders.type,
-      dueAt: reminders.dueAt,
-      tourId: reminders.tourId,
-      showId: reminders.showId,
-    })
-    .from(reminders)
-    .where(
-      and(
-        eq(reminders.orgId, orgId),
-        isNull(reminders.completedAt),
-        lte(reminders.dueAt, horizon),
-      ),
-    )
-    .orderBy(asc(reminders.dueAt))
-    .limit(10);
+  const upcomingReminders =
+    visibleTourIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: reminders.id,
+            title: reminders.title,
+            type: reminders.type,
+            dueAt: reminders.dueAt,
+            tourId: reminders.tourId,
+            showId: reminders.showId,
+          })
+          .from(reminders)
+          .where(
+            and(
+              isNull(reminders.completedAt),
+              lte(reminders.dueAt, horizon),
+              or(
+                // Org-wide reminders (no tour) for the user's own org only
+                and(eq(reminders.orgId, orgId), isNull(reminders.tourId)),
+                inArray(reminders.tourId, visibleTourIds),
+              ),
+            ),
+          )
+          .orderBy(asc(reminders.dueAt))
+          .limit(10);
 
-  const nextShows = await db
-    .select({
-      id: shows.id,
-      tourId: shows.tourId,
-      showDate: shows.showDate,
-      city: shows.city,
-      status: shows.status,
-      tourName: tours.name,
-      venueName: venues.name,
-    })
-    .from(shows)
-    .leftJoin(tours, eq(tours.id, shows.tourId))
-    .leftJoin(venues, eq(venues.id, shows.venueId))
-    .where(
-      and(
-        eq(shows.orgId, orgId),
-        gte(shows.showDate, today),
-        isNull(shows.archivedAt),
-      ),
-    )
-    .orderBy(asc(shows.showDate))
-    .limit(5);
+  const nextShows =
+    visibleTourIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: shows.id,
+            tourId: shows.tourId,
+            showDate: shows.showDate,
+            city: shows.city,
+            status: shows.status,
+            tourName: tours.name,
+            venueName: venues.name,
+          })
+          .from(shows)
+          .leftJoin(tours, eq(tours.id, shows.tourId))
+          .leftJoin(venues, eq(venues.id, shows.venueId))
+          .where(
+            and(
+              inArray(shows.tourId, visibleTourIds),
+              gte(shows.showDate, today),
+              isNull(shows.archivedAt),
+            ),
+          )
+          .orderBy(asc(shows.showDate))
+          .limit(5);
 
   const stats = [
-    { label: "Tours", value: tourCount[0].value, href: "/tours" },
+    { label: "Tours", value: tourCountValue, href: "/tours" },
     {
       label: "Upcoming shows",
       value: upcomingShowCount[0].value,
