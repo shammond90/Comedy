@@ -15,6 +15,7 @@ import { requireOrg } from "@/lib/auth";
 import { canInvite, getOrgRole, getTourRole, isOwner } from "@/lib/permissions";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites";
 import { logActivity } from "@/lib/activity";
+import { notify } from "@/lib/notifications";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -79,6 +80,14 @@ async function tryAutoAttach(opts: {
         invitedBy: opts.invitedBy,
       })
       .onConflictDoNothing();
+    await notify({
+      userId: match.id,
+      orgId: opts.orgId,
+      type: "tour_shared",
+      title: "You were added to a tour",
+      body: `Role: ${opts.role}`,
+      link: `/tours/${opts.tourId}`,
+    });
   } else {
     await db
       .insert(orgMembers)
@@ -89,6 +98,14 @@ async function tryAutoAttach(opts: {
         canViewFinancials: opts.canViewFinancials,
       })
       .onConflictDoNothing();
+    await notify({
+      userId: match.id,
+      orgId: opts.orgId,
+      type: "invite_received",
+      title: "You were added to a workspace",
+      body: `Role: ${opts.role}`,
+      link: `/tours`,
+    });
   }
   return true;
 }
@@ -328,6 +345,13 @@ export async function changeRoleAction(formData: FormData) {
       summary: `changed org member role to ${role}`,
       changes: { role: { from: target.role, to: role } },
     });
+    await notify({
+      userId: id,
+      orgId,
+      type: "role_changed",
+      title: `Your role changed to ${role}`,
+      link: `/tours`,
+    });
     revalidatePath("/settings/team");
   } else {
     if (!tourId) return;
@@ -350,6 +374,20 @@ export async function changeRoleAction(formData: FormData) {
       action: "role_change",
       summary: `changed tour collaborator role to ${role}`,
     });
+    const [collab] = await db
+      .select({ userId: tourCollaborators.userId })
+      .from(tourCollaborators)
+      .where(eq(tourCollaborators.id, id))
+      .limit(1);
+    if (collab) {
+      await notify({
+        userId: collab.userId,
+        orgId,
+        type: "role_changed",
+        title: `Your tour role changed to ${role}`,
+        link: `/tours/${tourId}`,
+      });
+    }
     revalidatePath(`/tours/${tourId}/team`);
   }
 }

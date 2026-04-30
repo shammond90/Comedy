@@ -609,6 +609,34 @@ export const activityLog = pgTable(
   ],
 );
 
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "invite_received",
+  "tour_shared",
+  "role_changed",
+  "force_unlocked",
+  "reminder_due",
+]);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    orgId: uuid("org_id").references(() => organisations.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    link: text("link"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("notifications_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
+
 /* -------------------------------------------------------------------------- */
 /*                                  Relations                                 */
 /* -------------------------------------------------------------------------- */
@@ -665,6 +693,8 @@ export type EditLock = typeof editLocks.$inferSelect;
 export type LockResourceType = (typeof lockResourceTypeEnum.enumValues)[number];
 export type ActivityLog = typeof activityLog.$inferSelect;
 export type ActivityAction = (typeof activityActionEnum.enumValues)[number];
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };

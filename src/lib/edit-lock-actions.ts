@@ -128,6 +128,27 @@ export async function forceReleaseLockAction(
   const user = await requireUser();
   const ctx = await resolveResourceContext(user.id, resourceType, resourceId);
   if (!ctx || !ctx.isAdmin) return { ok: false };
+  // Capture the previous lock holder BEFORE force-release deletes the row.
+  let prevHolderId: string | null = null;
+  try {
+    const { db } = await import("@/db/client");
+    const { editLocks } = await import("@/db/schema");
+    const { and: andOp, eq: eqOp } = await import("drizzle-orm");
+    const [prev] = await db
+      .select({ userId: editLocks.userId })
+      .from(editLocks)
+      .where(
+        andOp(
+          eqOp(editLocks.resourceType, resourceType),
+          eqOp(editLocks.resourceId, resourceId),
+        ),
+      )
+      .limit(1);
+    prevHolderId = prev?.userId ?? null;
+  } catch {
+    // best-effort
+  }
+
   await forceReleaseLock({
     resourceType,
     resourceId,
@@ -142,6 +163,16 @@ export async function forceReleaseLockAction(
     action: "force_unlock",
     summary: `force-unlocked ${resourceType}`,
   });
+  if (prevHolderId && prevHolderId !== user.id) {
+    const { notify } = await import("@/lib/notifications");
+    await notify({
+      userId: prevHolderId,
+      orgId: ctx.orgId,
+      type: "force_unlocked",
+      title: "An admin took over your edit lock",
+      body: `${resourceType} was unlocked by another user`,
+    });
+  }
   if (redirectPath) revalidatePath(redirectPath);
   return { ok: true };
 }
