@@ -16,6 +16,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatDate, formatPence } from "@/lib/utils";
 import { getTourFinancials } from "@/lib/finance";
 import { deleteTourAction } from "../actions";
+import { CloneTourButton } from "./clone-tour-button";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusPill } from "@/components/ui/pill";
 
@@ -172,6 +173,9 @@ export default async function TourDetailPage({
               <Link href={`/tours/${t.id}/edit`}>
                 <Button variant="outline">Edit</Button>
               </Link>
+            )}
+            {allowEdit && (
+              <CloneTourButton tourId={t.id} sourceName={t.name} sourceStartDate={t.startDate} />
             )}
             {allowInvite && (
               <Link href={`/tours/${t.id}/team`}>
