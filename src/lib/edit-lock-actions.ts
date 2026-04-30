@@ -133,6 +133,15 @@ export async function forceReleaseLockAction(
     resourceId,
     orgId: ctx.orgId,
   });
+  const { logActivity } = await import("@/lib/activity");
+  await logActivity({
+    orgId: ctx.orgId,
+    userId: user.id,
+    resourceType,
+    resourceId,
+    action: "force_unlock",
+    summary: `force-unlocked ${resourceType}`,
+  });
   if (redirectPath) revalidatePath(redirectPath);
   return { ok: true };
 }

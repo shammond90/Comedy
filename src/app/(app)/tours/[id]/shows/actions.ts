@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { shows, venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { diffRecords, logActivity } from "@/lib/activity";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { showSchema } from "./schema";
 
@@ -64,19 +65,19 @@ export async function createShowAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
   const parsed = showSchema.safeParse(formToObject(formData));
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const venueId = await resolveVenueId(orgId, parsed.data);
+  let newId: string | null = null;
   try {
     const [row] = await db
       .insert(shows)
       .values({ ...mapToColumns(parsed.data, venueId), orgId, tourId })
       .returning({ id: shows.id });
-    revalidatePath(`/tours/${tourId}`);
-    redirect(`/tours/${tourId}/shows/${row.id}`);
+    newId = row.id;
   } catch (err) {
     if (err instanceof Error && /shows_comedian_date_unique/.test(err.message)) {
       return {
@@ -86,6 +87,16 @@ export async function createShowAction(
     }
     throw err;
   }
+  await logActivity({
+    orgId,
+    userId: user.id,
+    resourceType: "show",
+    resourceId: newId,
+    action: "create",
+    summary: `added show ${parsed.data.showDate}${parsed.data.city ? " in " + parsed.data.city : ""}`,
+  });
+  revalidatePath(`/tours/${tourId}`);
+  redirect(`/tours/${tourId}/shows/${newId}`);
 }
 
 export async function updateShowAction(
@@ -94,20 +105,22 @@ export async function updateShowAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
   const parsed = showSchema.safeParse(formToObject(formData));
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const venueId = await resolveVenueId(orgId, parsed.data);
+  const [before] = await db
+    .select()
+    .from(shows)
+    .where(and(eq(shows.id, showId), eq(shows.orgId, orgId)))
+    .limit(1);
   try {
     await db
       .update(shows)
       .set({ ...mapToColumns(parsed.data, venueId), updatedAt: new Date() })
       .where(and(eq(shows.id, showId), eq(shows.orgId, orgId)));
-    revalidatePath(`/tours/${tourId}`);
-    revalidatePath(`/tours/${tourId}/shows/${showId}`);
-    redirect(`/tours/${tourId}/shows/${showId}`);
   } catch (err) {
     if (err instanceof Error && /shows_comedian_date_unique/.test(err.message)) {
       return {
@@ -117,16 +130,47 @@ export async function updateShowAction(
     }
     throw err;
   }
+  if (before) {
+    const after = { ...before, ...mapToColumns(parsed.data, venueId) } as Record<string, unknown>;
+    const changes = diffRecords(before as Record<string, unknown>, after);
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "show",
+      resourceId: showId,
+      action: "update",
+      summary: `edited show ${parsed.data.showDate}${parsed.data.city ? " in " + parsed.data.city : ""}`,
+      changes,
+    });
+  }
+  revalidatePath(`/tours/${tourId}`);
+  revalidatePath(`/tours/${tourId}/shows/${showId}`);
+  redirect(`/tours/${tourId}/shows/${showId}`);
 }
 
 export async function deleteShowAction(formData: FormData) {
   const id = String(formData.get("id"));
   const tourId = String(formData.get("tourId"));
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
+  const [before] = await db
+    .select({ showDate: shows.showDate, city: shows.city })
+    .from(shows)
+    .where(and(eq(shows.id, id), eq(shows.orgId, orgId)))
+    .limit(1);
   await db
     .update(shows)
     .set({ archivedAt: new Date() })
     .where(and(eq(shows.id, id), eq(shows.orgId, orgId)));
+  if (before) {
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "show",
+      resourceId: id,
+      action: "delete",
+      summary: `removed show ${before.showDate}${before.city ? " in " + before.city : ""}`,
+    });
+  }
   revalidatePath(`/tours/${tourId}`);
   redirect(`/tours/${tourId}`);
 }
@@ -142,17 +186,33 @@ export async function quickUpdateStatusAction(formData: FormData) {
     | "confirmed"
     | "unavailable"
     | "cancelled";
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
 
   const updates: Record<string, unknown> = { status, updatedAt: new Date() };
   const now = new Date();
   if (status === "contacted") updates.contactedAt = now;
   if (status === "confirmed") updates.confirmedAt = now;
 
+  const [before] = await db
+    .select({ status: shows.status, showDate: shows.showDate, city: shows.city })
+    .from(shows)
+    .where(and(eq(shows.id, id), eq(shows.orgId, orgId)))
+    .limit(1);
   await db
     .update(shows)
     .set(updates)
     .where(and(eq(shows.id, id), eq(shows.orgId, orgId)));
+  if (before && before.status !== status) {
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "show",
+      resourceId: id,
+      action: "update",
+      summary: `${before.showDate}${before.city ? " " + before.city : ""}: ${before.status} \u2192 ${status}`,
+      changes: { status: { from: before.status, to: status } },
+    });
+  }
   revalidatePath(`/tours/${tourId}`);
   revalidatePath(`/tours/${tourId}/shows/${id}`);
 }

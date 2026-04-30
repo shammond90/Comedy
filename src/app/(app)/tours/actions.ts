@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { tours } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { canDelete, canEdit, getOrgRole, getTourRole } from "@/lib/permissions";
+import { diffRecords, logActivity } from "@/lib/activity";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { tourSchema } from "./schema";
 
@@ -28,6 +29,14 @@ export async function createTourAction(
     .insert(tours)
     .values({ ...rest, budgetPence: budget, orgId })
     .returning({ id: tours.id });
+  await logActivity({
+    orgId,
+    userId: user.id,
+    resourceType: "tour",
+    resourceId: row.id,
+    action: "create",
+    summary: `created tour "${rest.name}"`,
+  });
   revalidatePath("/tours");
   redirect(`/tours/${row.id}`);
 }
@@ -47,10 +56,24 @@ export async function updateTourAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const { budget, ...rest } = parsed.data;
+  const [before] = await db.select().from(tours).where(eq(tours.id, id)).limit(1);
   await db
     .update(tours)
     .set({ ...rest, budgetPence: budget, updatedAt: new Date() })
     .where(eq(tours.id, id));
+  if (before) {
+    const after = { ...before, ...rest, budgetPence: budget } as Record<string, unknown>;
+    const changes = diffRecords(before as Record<string, unknown>, after);
+    await logActivity({
+      orgId: before.orgId,
+      userId: user.id,
+      resourceType: "tour",
+      resourceId: id,
+      action: "update",
+      summary: `edited tour "${rest.name}"`,
+      changes,
+    });
+  }
   revalidatePath("/tours");
   revalidatePath(`/tours/${id}`);
   redirect(`/tours/${id}`);
@@ -61,10 +84,21 @@ export async function deleteTourAction(formData: FormData) {
   const { user } = await requireOrg();
   const tourRole = await getTourRole(user.id, id);
   if (!canDelete(tourRole?.role ?? null)) return;
+  const [t] = await db.select({ name: tours.name, orgId: tours.orgId }).from(tours).where(eq(tours.id, id)).limit(1);
   await db
     .update(tours)
     .set({ archivedAt: new Date() })
     .where(eq(tours.id, id));
+  if (t) {
+    await logActivity({
+      orgId: t.orgId,
+      userId: user.id,
+      resourceType: "tour",
+      resourceId: id,
+      action: "delete",
+      summary: `archived tour "${t.name}"`,
+    });
+  }
   revalidatePath("/tours");
   redirect("/tours");
 }

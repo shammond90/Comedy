@@ -8,6 +8,7 @@ import {
   date,
   time,
   boolean,
+  jsonb,
   pgEnum,
   unique,
   index,
@@ -90,6 +91,16 @@ export const lockResourceTypeEnum = pgEnum("lock_resource_type", [
   "show_accommodation",
   "show_travel",
   "settings_team",
+]);
+
+export const activityActionEnum = pgEnum("activity_action", [
+  "create",
+  "update",
+  "delete",
+  "restore",
+  "invite",
+  "force_unlock",
+  "role_change",
 ]);
 
 /* -------------------------------------------------------------------------- */
@@ -570,6 +581,35 @@ export const editLocks = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                                Activity log                                */
+/* -------------------------------------------------------------------------- */
+
+export const activityLog = pgTable(
+  "activity_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: uuid("resource_id"),
+    action: activityActionEnum("action").notNull(),
+    summary: text("summary").notNull(),
+    // Free-form structured payload — typically { field: { from, to } } diffs.
+    changes: jsonb("changes").$type<Record<string, { from: unknown; to: unknown }> | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("activity_log_org_created_idx").on(t.orgId, t.createdAt),
+    index("activity_log_resource_idx").on(t.resourceType, t.resourceId),
+    index("activity_log_user_idx").on(t.userId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
 /*                                  Relations                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -623,6 +663,8 @@ export type Invitation = typeof invitations.$inferSelect;
 export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
 export type EditLock = typeof editLocks.$inferSelect;
 export type LockResourceType = (typeof lockResourceTypeEnum.enumValues)[number];
+export type ActivityLog = typeof activityLog.$inferSelect;
+export type ActivityAction = (typeof activityActionEnum.enumValues)[number];
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };

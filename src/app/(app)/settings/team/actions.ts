@@ -14,6 +14,7 @@ import {
 import { requireOrg } from "@/lib/auth";
 import { canInvite, getOrgRole, getTourRole, isOwner } from "@/lib/permissions";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites";
+import { logActivity } from "@/lib/activity";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -142,6 +143,15 @@ export async function inviteToOrgAction(
     expiresAt: inviteExpiry(),
   });
 
+  await logActivity({
+    orgId,
+    userId: user.id,
+    resourceType: "org",
+    resourceId: orgId,
+    action: "invite",
+    summary: `invited ${email ?? "someone"} to org as ${role}`,
+  });
+
   revalidatePath("/settings/team");
   return { inviteUrl: inviteUrl(token) };
 }
@@ -205,6 +215,15 @@ export async function inviteToTourAction(
     expiresAt: inviteExpiry(),
   });
 
+  await logActivity({
+    orgId,
+    userId: user.id,
+    resourceType: "tour",
+    resourceId: tourId,
+    action: "invite",
+    summary: `invited ${email ?? "someone"} to tour as ${role}`,
+  });
+
   revalidatePath(`/tours/${tourId}/team`);
   return { inviteUrl: inviteUrl(token) };
 }
@@ -246,6 +265,14 @@ export async function removeMemberAction(formData: FormData) {
   await db
     .delete(orgMembers)
     .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, userId)));
+  await logActivity({
+    orgId,
+    userId: user.id,
+    resourceType: "org",
+    resourceId: orgId,
+    action: "delete",
+    summary: `removed member from org`,
+  });
   revalidatePath("/settings/team");
 }
 
@@ -292,6 +319,15 @@ export async function changeRoleAction(formData: FormData) {
       .update(orgMembers)
       .set({ role: role as MemberRole })
       .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, id)));
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "org",
+      resourceId: orgId,
+      action: "role_change",
+      summary: `changed org member role to ${role}`,
+      changes: { role: { from: target.role, to: role } },
+    });
     revalidatePath("/settings/team");
   } else {
     if (!tourId) return;
@@ -306,6 +342,14 @@ export async function changeRoleAction(formData: FormData) {
           eq(tourCollaborators.orgId, orgId),
         ),
       );
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "tour",
+      resourceId: tourId,
+      action: "role_change",
+      summary: `changed tour collaborator role to ${role}`,
+    });
     revalidatePath(`/tours/${tourId}/team`);
   }
 }
@@ -365,6 +409,15 @@ export async function acceptInviteAction(token: string): Promise<
     .update(invitations)
     .set({ acceptedAt: new Date(), acceptedBy: user.id })
     .where(eq(invitations.id, inv.id));
+
+  await logActivity({
+    orgId: inv.orgId,
+    userId: user.id,
+    resourceType: inv.tourId ? "tour" : "org",
+    resourceId: inv.tourId ?? inv.orgId,
+    action: "invite",
+    summary: `joined ${inv.tourId ? "tour" : "org"} as ${inv.role}`,
+  });
 
   return {
     ok: true,
