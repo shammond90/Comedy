@@ -44,7 +44,7 @@ type Prefill = Partial<{
 type Props = {
   show?: Show;
   prefill?: Prefill;
-  venues: Pick<Venue, "id" | "name" | "city" | "country" | "capacity">;
+  venues: Pick<Venue, "id" | "name" | "city" | "country" | "capacity">[];
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   submitLabel: string;
 };
