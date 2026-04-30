@@ -155,7 +155,18 @@ export const showSchema = z.object({
     .nullable()
     .optional()
     .transform((v) => v ?? null),
-  newVenueCapacity: optionalInt,
+  newVenueCapacity: z
+    .string()
+    .trim()
+    .transform((v) => {
+      if (v === "") return null;
+      const n = Number(v);
+      if (!Number.isFinite(n)) return null;
+      return Math.trunc(n);
+    })
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
 });
 
 export const showStatusValues = [
