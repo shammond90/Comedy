@@ -6,9 +6,42 @@ import {
   removeMemberAction,
   removeCollaboratorAction,
   revokeInviteAction,
+  setFinancialsAction,
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
+
+function FinancialsToggle({
+  scope,
+  id,
+  tourId,
+  value,
+  disabled,
+  onChange,
+}: {
+  scope: "org" | "tour";
+  id: string;
+  tourId?: string;
+  value: boolean;
+  disabled: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  void scope;
+  void id;
+  void tourId;
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        className="h-4 w-4 cursor-pointer rounded border-border-strong accent-accent"
+        checked={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="text-muted-foreground">{value ? "Yes" : "No"}</span>
+    </label>
+  );
+}
 
 export function MemberRow({
   userId,
@@ -68,7 +101,23 @@ export function MemberRow({
         )}
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">
-        {canViewFinancials ? "Yes" : "No"}
+        {ownerFlag || !canManage ? (
+          <span>{canViewFinancials ? "Yes" : "No"}</span>
+        ) : (
+          <FinancialsToggle
+            scope="org"
+            id={userId}
+            value={canViewFinancials}
+            disabled={pending}
+            onChange={(next) => {
+              const fd = new FormData();
+              fd.set("scope", "org");
+              fd.set("id", userId);
+              fd.set("canViewFinancials", next ? "true" : "false");
+              start(() => setFinancialsAction(fd));
+            }}
+          />
+        )}
       </td>
       <td className="px-4 py-3 text-right">
         {canManage && !ownerFlag && !isCurrent && (
@@ -201,7 +250,25 @@ export function CollaboratorRow({
         )}
       </td>
       <td className="px-4 py-3 text-sm text-muted-foreground">
-        {canViewFinancials ? "Yes" : "No"}
+        {!canManage ? (
+          <span>{canViewFinancials ? "Yes" : "No"}</span>
+        ) : (
+          <FinancialsToggle
+            scope="tour"
+            id={id}
+            tourId={tourId}
+            value={canViewFinancials}
+            disabled={pending}
+            onChange={(next) => {
+              const fd = new FormData();
+              fd.set("scope", "tour");
+              fd.set("id", id);
+              fd.set("tourId", tourId);
+              fd.set("canViewFinancials", next ? "true" : "false");
+              start(() => setFinancialsAction(fd));
+            }}
+          />
+        )}
       </td>
       <td className="px-4 py-3 text-right">
         {canManage && (

@@ -313,6 +313,66 @@ const changeRoleSchema = z.object({
   tourId: z.string().uuid().optional(),
 });
 
+const setFinancialsSchema = z.object({
+  scope: z.enum(["org", "tour"]),
+  id: z.string(),
+  canViewFinancials: z.coerce.boolean(),
+  tourId: z.string().uuid().optional(),
+});
+
+export async function setFinancialsAction(formData: FormData) {
+  const parsed = setFinancialsSchema.safeParse(formToObject(formData));
+  if (!parsed.success) return;
+  const { scope, id, canViewFinancials, tourId } = parsed.data;
+  const { user, orgId } = await requireOrg();
+
+  if (scope === "org") {
+    const orgRole = await getOrgRole(user.id, orgId);
+    if (!canInvite(orgRole?.role ?? null)) return;
+    const [target] = await db
+      .select({ role: orgMembers.role })
+      .from(orgMembers)
+      .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, id)))
+      .limit(1);
+    if (!target || target.role === "owner") return;
+    await db
+      .update(orgMembers)
+      .set({ canViewFinancials })
+      .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, id)));
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "org",
+      resourceId: orgId,
+      action: "update",
+      summary: `${canViewFinancials ? "granted" : "revoked"} financials access for org member`,
+    });
+    revalidatePath("/settings/team");
+  } else {
+    if (!tourId) return;
+    const tourRole = await getTourRole(user.id, tourId);
+    if (!canInvite(tourRole?.role ?? null)) return;
+    await db
+      .update(tourCollaborators)
+      .set({ canViewFinancials })
+      .where(
+        and(
+          eq(tourCollaborators.id, id),
+          eq(tourCollaborators.orgId, orgId),
+        ),
+      );
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "tour",
+      resourceId: tourId,
+      action: "update",
+      summary: `${canViewFinancials ? "granted" : "revoked"} financials access for collaborator`,
+    });
+    revalidatePath(`/tours/${tourId}/team`);
+  }
+}
+
 export async function changeRoleAction(formData: FormData) {
   const parsed = changeRoleSchema.safeParse(formToObject(formData));
   if (!parsed.success) return;
