@@ -48,7 +48,6 @@ function mapToColumns(
   return {
     venueId,
     showDate: data.showDate,
-    country: data.country,
     city: data.city,
     showTime: data.showTime,
     doorsTime: data.doorsTime,

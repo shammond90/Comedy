@@ -72,7 +72,7 @@ export function ShowForm({
 
   const [selectedVenueId, setSelectedVenueId] = useState(s?.venueId ?? p.venueId ?? "");
   const [selectedCountry, setSelectedCountry] = useState(
-    () => venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? s?.country ?? p.country ?? ""
+    () => venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? p.country ?? ""
   );
   const [selectedCity, setSelectedCity] = useState(s?.city ?? p.city ?? "");
 
@@ -113,7 +113,7 @@ export function ShowForm({
         | "cancelled"
         | "unavailable",
       venueId: s?.venueId ?? p.venueId ?? "",
-      country: venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? s?.country ?? p.country ?? "",
+      country: venues.find((v) => v.id === (s?.venueId ?? p.venueId ?? ""))?.country ?? p.country ?? "",
       city: s?.city ?? p.city ?? "",
       doorsTime: s?.doorsTime ?? p.doorsTime ?? "",
       showTime: s?.showTime ?? p.showTime ?? "",
