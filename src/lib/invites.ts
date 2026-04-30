@@ -25,16 +25,23 @@ export function inviteExpiry(now: Date = new Date()): Date {
  *
  * Resolution order:
  *   1. NEXT_PUBLIC_SITE_URL (preferred, set per-environment)
- *   2. VERCEL_URL (auto-set on Vercel deployments — no scheme)
- *   3. http://localhost:3000 (dev fallback)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL (Vercel's stable production alias —
+ *      e.g. `comedy-zeta.vercel.app`, NOT the per-deployment URL which
+ *      sits behind deployment protection)
+ *   3. VERCEL_URL (auto-set on Vercel deployments — per-deployment, no scheme;
+ *      OK for previews where the recipient already has Vercel access)
+ *   4. http://localhost:3000 (dev fallback)
  */
 export function inviteUrl(token: string): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  const prodAlias = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const vercel = process.env.VERCEL_URL;
   const base = explicit
     ? explicit.replace(/\/$/, "")
-    : vercel
-      ? `https://${vercel}`
-      : "http://localhost:3000";
+    : prodAlias
+      ? `https://${prodAlias}`
+      : vercel
+        ? `https://${vercel}`
+        : "http://localhost:3000";
   return `${base}/invite/${token}`;
 }
