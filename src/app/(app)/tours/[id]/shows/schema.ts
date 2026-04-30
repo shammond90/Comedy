@@ -125,12 +125,7 @@ export const showSchema = z.object({
   settlementSplitPercent: optionalPercent,
   settlementGuarantee: optionalPence,
 
-  ticketPrice: optionalPence,
   ticketCapacity: optionalInt,
-  estTicketsSold: optionalInt,
-  estTicketsSoldPct: optionalPercent,
-  ticketsSold: optionalInt,
-  ticketsComped: optionalInt,
 
   marketingBudget: optionalPence,
   marketingCopy: optionalString,
