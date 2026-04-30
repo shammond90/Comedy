@@ -177,93 +177,111 @@ export function ShowForm({
             </Select>
           </Field>
 
-          <Field label="Venue" error={errors.venueId?.message ?? fe.venueId?.[0]}>
-            <div className="space-y-2">
-              <Select
-                {...register("venueId")}
-                value={selectedVenueId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setSelectedVenueId(id);
-                  setValue("venueId", id, { shouldValidate: true });
-                  const venue = venues.find((v) => v.id === id);
-                  if (venue?.city) {
-                    setSelectedCity(venue.city);
-                    setValue("city", venue.city, { shouldValidate: true });
-                  }
-                  if (venue?.capacity != null) {
-                    setCapacityVal(venue.capacity.toString());
-                    setValue("ticketCapacity", venue.capacity.toString(), { shouldValidate: true });
-                  }
-                }}
-                disabled={quickAdd}
-              >
-                <option value="">— Select a venue —</option>
-                {filteredVenues.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </Select>
-              <button
-                type="button"
-                onClick={() => setQuickAdd((v) => !v)}
-                className="text-xs text-muted-foreground underline"
-              >
-                {quickAdd ? "Cancel quick add" : "+ Quick-add a new venue"}
-              </button>
-              {quickAdd && (
-                <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
-                  <Input
-                    {...register("newVenueName")}
-                    placeholder="Venue name"
-                  />
-                  <Input
-                    {...register("newVenueCity")}
-                    placeholder="City *"
-                    aria-required="true"
-                  />
-                  {quickAddCityError && (
-                    <p className="text-xs text-destructive">{quickAddCityError}</p>
+          {/* Venue, City, Capacity — grouped */}
+          <div className="md:col-span-2 grid gap-4 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <Field label="Venue" error={errors.venueId?.message ?? fe.venueId?.[0]}>
+                <div className="space-y-2">
+                  <Select
+                    {...register("venueId")}
+                    value={selectedVenueId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedVenueId(id);
+                      setValue("venueId", id, { shouldValidate: true });
+                      const venue = venues.find((v) => v.id === id);
+                      if (venue?.city) {
+                        setSelectedCity(venue.city);
+                        setValue("city", venue.city, { shouldValidate: true });
+                      }
+                      if (venue?.capacity != null) {
+                        setCapacityVal(venue.capacity.toString());
+                        setValue("ticketCapacity", venue.capacity.toString(), { shouldValidate: true });
+                      }
+                    }}
+                    disabled={quickAdd}
+                  >
+                    <option value="">— Select a venue —</option>
+                    {filteredVenues.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => setQuickAdd((v) => !v)}
+                    className="text-xs text-muted-foreground underline"
+                  >
+                    {quickAdd ? "Cancel quick add" : "+ Quick-add a new venue"}
+                  </button>
+                  {quickAdd && (
+                    <div className="grid gap-2 rounded-md border border-dashed border-border p-3">
+                      <Input
+                        {...register("newVenueName")}
+                        placeholder="Venue name"
+                      />
+                      <Input
+                        {...register("newVenueCity")}
+                        placeholder="City *"
+                        aria-required="true"
+                      />
+                      {quickAddCityError && (
+                        <p className="text-xs text-destructive">{quickAddCityError}</p>
+                      )}
+                      <Input
+                        {...register("newVenueCapacity")}
+                        type="number"
+                        min={0}
+                        placeholder="Capacity (optional)"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        A minimal venue record will be created. Edit it later in
+                        Venues for full details.
+                      </p>
+                    </div>
                   )}
-                  <Input
-                    {...register("newVenueCapacity")}
-                    type="number"
-                    min={0}
-                    placeholder="Capacity (optional)"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    A minimal venue record will be created. Edit it later in
-                    Venues for full details.
-                  </p>
                 </div>
-              )}
+              </Field>
             </div>
-          </Field>
-          <Field label="City">
-            <Select
-              {...register("city")}
-              value={selectedCity}
-              onChange={(e) => {
-                const city = e.target.value;
-                setSelectedCity(city);
-                setValue("city", city, { shouldValidate: true });
-                // If the selected venue isn't in this city, clear it
-                if (selectedVenueId) {
-                  const venue = venues.find((v) => v.id === selectedVenueId);
-                  if (venue && venue.city !== city) {
-                    setSelectedVenueId("");
-                    setValue("venueId", "", { shouldValidate: true });
-                  }
-                }
-              }}
-            >
-              <option value="">— All cities —</option>
-              {uniqueCities.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </Select>
-          </Field>
+            <div className="grid gap-4">
+              <Field label="City">
+                <Select
+                  {...register("city")}
+                  value={selectedCity}
+                  onChange={(e) => {
+                    const city = e.target.value;
+                    setSelectedCity(city);
+                    setValue("city", city, { shouldValidate: true });
+                    if (selectedVenueId) {
+                      const venue = venues.find((v) => v.id === selectedVenueId);
+                      if (venue && venue.city !== city) {
+                        setSelectedVenueId("");
+                        setValue("venueId", "", { shouldValidate: true });
+                      }
+                    }
+                  }}
+                >
+                  <option value="">— All cities —</option>
+                  {uniqueCities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Capacity" hint="Pre-filled from venue; override per show">
+                <Input
+                  type="number"
+                  min={0}
+                  {...register("ticketCapacity")}
+                  value={capacityVal}
+                  onChange={(e) => {
+                    setCapacityVal(e.target.value);
+                    setValue("ticketCapacity", e.target.value);
+                  }}
+                />
+              </Field>
+            </div>
+          </div>
           <Field label="Doors time">
             <Input type="time" {...register("doorsTime")} />
           </Field>
@@ -286,18 +304,6 @@ export function ShowForm({
           </Field>
           <Field label="Notes">
             <Textarea {...register("notes")} rows={3} />
-          </Field>
-          <Field label="Capacity" hint="Pre-filled from venue; override per show">
-            <Input
-              type="number"
-              min={0}
-              {...register("ticketCapacity")}
-              value={capacityVal}
-              onChange={(e) => {
-                setCapacityVal(e.target.value);
-                setValue("ticketCapacity", e.target.value);
-              }}
-            />
           </Field>
         </CardContent>
       </Card>
