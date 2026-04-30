@@ -27,7 +27,7 @@ export function CloneTourButton({
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg border border-border bg-popover p-5 shadow-xl"
+            className="w-full max-w-md rounded-lg border border-border bg-surface p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold">Duplicate tour</h2>

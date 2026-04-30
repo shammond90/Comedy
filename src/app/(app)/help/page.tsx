@@ -175,6 +175,125 @@ export default function HelpPage() {
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>Team &amp; sharing</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Comedy is multi-user. Invite people from <em>Settings → Team</em> at
+            the organisation level (access to everything) or, from a tour&apos;s{" "}
+            <em>Team</em> tab, on a per-tour basis.
+          </p>
+          <p><strong>Roles</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Viewer</strong> — read-only access</li>
+            <li><strong>Editor</strong> — can create and edit shows, tours, venues, comedians</li>
+            <li><strong>Admin</strong> — can also invite team members and delete tours</li>
+            <li><strong>Owner</strong> — the org creator; can transfer ownership</li>
+          </ul>
+          <p>
+            Your effective role on a tour is the higher of your org role and any
+            per-tour role you&apos;ve been granted. Tick{" "}
+            <strong>Can view financials</strong> on an invite to expose money
+            fields; otherwise revenue, costs and net are hidden.
+          </p>
+          <p>
+            If the invitee already has an account, they&apos;re attached
+            immediately and notified. Otherwise the invite is a shareable link
+            that&apos;s valid for 14 days.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Edit locks</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            To prevent two people overwriting each other, edit pages take a{" "}
+            <strong>pessimistic lock</strong>. While you&apos;re editing,
+            others see a banner telling them who has the page open. Locks
+            expire automatically after 5 minutes of inactivity, or when you
+            navigate away.
+          </p>
+          <p>
+            <strong>Admins</strong> can force-unlock a page if someone&apos;s
+            browser crashed mid-edit.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Activity &amp; notifications</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Every change is recorded in an <strong>activity log</strong>. View
+            org-wide activity at <em>/activity</em> or per-tour activity from a
+            tour&apos;s <em>Activity</em> tab.
+          </p>
+          <p>
+            The <strong>bell icon</strong> in the top right shows unread
+            notifications — tour invites, shares, mentions, and reminders that
+            fire. Click any item to jump straight to the relevant page; click{" "}
+            <em>Mark all read</em> to clear.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Per-show task checklist</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Each show has a <strong>Tasks</strong> card on its detail page —
+            lightweight checklist items like &ldquo;send rider&rdquo;, &ldquo;book
+            hotel&rdquo;, &ldquo;chase settlement&rdquo;. Tick a box to mark it
+            done; the tour overview shows <em>done / total</em> per show so you
+            can see at a glance which dates need attention.
+          </p>
+          <p>Use the ↑ ↓ buttons to reorder.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Cloning a tour</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            From any tour&apos;s detail page, the <strong>Clone</strong> button
+            copies the entire run — shows, reminders, and tasks — to a new tour
+            with a new name and start date. All dates are shifted by the same
+            offset, status is reset to <em>planning</em>, and ticket sales /
+            financial actuals are cleared so you can plan a follow-up run.
+          </p>
+          <p>
+            <em>Not</em> copied: settlements, accommodation, travel — these are
+            typically venue-and-date specific.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Calendar feeds (iCal)</CardTitle></CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Subscribe to your tour schedule from Google Calendar, Apple
+            Calendar, Outlook, or any iCal-compatible app. Go to{" "}
+            <em>Settings → Calendars</em> and create a feed at one of three
+            scopes:
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Organisation</strong> — every show in your org</li>
+            <li><strong>Tour</strong> — a single tour</li>
+            <li><strong>Comedian</strong> — every show featuring that comedian</li>
+          </ul>
+          <p>
+            Copy the generated URL into your calendar app&apos;s
+            &ldquo;Subscribe to calendar&rdquo; option. The feed is read-only
+            and refreshes every few minutes. <strong>Treat the URL like a
+            password</strong> — anyone with the link can read the schedule.
+            Use <em>Revoke</em> to invalidate a leaked URL; you can always
+            create a new one.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Tips &amp; tricks</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
           <ul className="list-disc pl-5 space-y-2">

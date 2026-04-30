@@ -130,7 +130,7 @@ export function NotificationBell({ userId }: { userId: string }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-lg border border-border bg-popover shadow-lg"
+          className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-lg border border-border bg-surface shadow-lg"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-border px-3 py-2">

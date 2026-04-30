@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { invitations, tourCollaborators, tours, comedians } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { canInvite, getTourRole } from "@/lib/permissions";
+import { resolveUserEmails } from "@/lib/users";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,10 @@ export default async function TourTeamPage({
     .from(tourCollaborators)
     .where(eq(tourCollaborators.tourId, id))
     .orderBy(desc(tourCollaborators.createdAt));
+
+  const collabEmails = await resolveUserEmails(
+    collaborators.map((c) => c.userId),
+  );
 
   const pending = await db
     .select({
@@ -116,6 +121,7 @@ export default async function TourTeamPage({
                     key={c.id}
                     id={c.id}
                     userId={c.userId}
+                    email={collabEmails.get(c.userId) ?? null}
                     tourId={t.id}
                     role={c.role}
                     canViewFinancials={c.canViewFinancials}

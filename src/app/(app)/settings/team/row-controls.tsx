@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/input";
 
 export function MemberRow({
   userId,
+  email,
   isCurrent,
   role,
   canViewFinancials,
@@ -19,6 +20,7 @@ export function MemberRow({
   canManage,
 }: {
   userId: string;
+  email: string | null;
   isCurrent: boolean;
   role: string;
   canViewFinancials: boolean;
@@ -28,8 +30,14 @@ export function MemberRow({
   const [pending, start] = useTransition();
   return (
     <tr className="border-b border-border last:border-0">
-      <td className="px-4 py-3 text-sm font-mono text-xs">
-        {userId.slice(0, 8)}…
+      <td className="px-4 py-3 text-sm">
+        {email ? (
+          <span className="font-medium">{email}</span>
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground">
+            {userId.slice(0, 8)}…
+          </span>
+        )}
         {isCurrent && (
           <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent">
             you
@@ -142,6 +150,7 @@ export function InviteRow({
 export function CollaboratorRow({
   id,
   userId,
+  email,
   tourId,
   role,
   canViewFinancials,
@@ -149,6 +158,7 @@ export function CollaboratorRow({
 }: {
   id: string;
   userId: string;
+  email: string | null;
   tourId: string;
   role: string;
   canViewFinancials: boolean;
@@ -157,7 +167,15 @@ export function CollaboratorRow({
   const [pending, start] = useTransition();
   return (
     <tr className="border-b border-border last:border-0">
-      <td className="px-4 py-3 text-xs font-mono">{userId.slice(0, 8)}…</td>
+      <td className="px-4 py-3 text-sm">
+        {email ? (
+          <span className="font-medium">{email}</span>
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground">
+            {userId.slice(0, 8)}…
+          </span>
+        )}
+      </td>
       <td className="px-4 py-3">
         {!canManage ? (
           <span className="capitalize text-sm">{role}</span>
