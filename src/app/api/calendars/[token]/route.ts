@@ -8,6 +8,7 @@ import {
   comedians,
 } from "@/db/schema";
 import { buildIcs, combineShowDateTime, type IcsEvent } from "@/lib/ics";
+import { getOrgRole, getTourRole } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,6 +27,22 @@ export async function GET(
 
   if (!t || t.revokedAt) {
     return new Response("Not found", { status: 404 });
+  }
+
+  // Re-check that the subscriber still has access. If not, soft-revoke the
+  // token (defense in depth alongside auto-revoke on removal) and return 410.
+  let stillAuthorised = false;
+  if (t.scope === "org" || t.scope === "comedian") {
+    stillAuthorised = (await getOrgRole(t.userId, t.orgId)) !== null;
+  } else if (t.scope === "tour" && t.scopeId) {
+    stillAuthorised = (await getTourRole(t.userId, t.scopeId)) !== null;
+  }
+  if (!stillAuthorised) {
+    await db
+      .update(calendarTokens)
+      .set({ revokedAt: new Date() })
+      .where(eq(calendarTokens.id, t.id));
+    return new Response("Access revoked", { status: 410 });
   }
 
   // Resolve shows for the scope.

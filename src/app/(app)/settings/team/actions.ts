@@ -16,6 +16,10 @@ import { canInvite, getOrgRole, getTourRole, isOwner } from "@/lib/permissions";
 import { generateInviteToken, inviteExpiry, inviteUrl } from "@/lib/invites";
 import { logActivity } from "@/lib/activity";
 import { notify } from "@/lib/notifications";
+import {
+  revokeUserCalendarTokensForOrg,
+  revokeUserCalendarTokensForTour,
+} from "@/lib/calendar-tokens";
 import { formToObject, type ActionState } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -282,6 +286,7 @@ export async function removeMemberAction(formData: FormData) {
   await db
     .delete(orgMembers)
     .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, userId)));
+  await revokeUserCalendarTokensForOrg(userId, orgId);
   await logActivity({
     orgId,
     userId: user.id,
@@ -300,9 +305,25 @@ export async function removeCollaboratorAction(formData: FormData) {
   const tourRole = await getTourRole(user.id, tourId);
   if (!canInvite(tourRole?.role ?? null)) return;
 
+  // Look up the collaborator's userId so we can revoke their calendar tokens.
+  const [collab] = await db
+    .select({ userId: tourCollaborators.userId })
+    .from(tourCollaborators)
+    .where(and(eq(tourCollaborators.id, id), eq(tourCollaborators.orgId, orgId)))
+    .limit(1);
+
   await db
     .delete(tourCollaborators)
     .where(and(eq(tourCollaborators.id, id), eq(tourCollaborators.orgId, orgId)));
+
+  if (collab) {
+    // If they're not also an org member, they've fully lost access — revoke.
+    const stillOrgMember = await getOrgRole(collab.userId, orgId);
+    if (!stillOrgMember) {
+      await revokeUserCalendarTokensForTour(collab.userId, tourId);
+    }
+  }
+
   revalidatePath(`/tours/${tourId}/team`);
 }
 
