@@ -183,6 +183,7 @@ export async function updateTickets(formData: FormData) {
   await db
     .update(shows)
     .set({
+      ticketPricePence: parsePence(formData.get("ticketPrice")),
       estTicketsSold: intOrNull(formData.get("estTicketsSold")),
       estTicketsSoldPct: pctOrNull(formData.get("estTicketsSoldPct")),
       ticketsSold: intOrNull(formData.get("ticketsSold")) ?? 0,

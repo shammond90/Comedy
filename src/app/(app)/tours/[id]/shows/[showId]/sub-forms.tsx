@@ -770,7 +770,14 @@ export function TicketsCard({
   // Estimated section state
   const [estCount, setEstCount] = useState(data.estTicketsSold?.toString() ?? "");
   const [estPct, setEstPct] = useState(data.estTicketsSoldPct?.toString() ?? "");
+  const [estPrice, setEstPrice] = useState(penceToInput(data.ticketPricePence));
   const cap = data.ticketCapacity ?? 0;
+
+  // Calculated est. revenue (pence)
+  const estRevenue =
+    estCount !== "" && estPrice !== ""
+      ? Number(estCount) * Math.round(Number(estPrice) * 100)
+      : null;
 
   function handleEstCountChange(val: string) {
     setEstCount(val);
@@ -792,7 +799,6 @@ export function TicketsCard({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // Override est fields with our controlled state
     fd.set("estTicketsSold", estCount);
     fd.set("estTicketsSoldPct", estPct);
     start(async () => {
@@ -807,12 +813,37 @@ export function TicketsCard({
       <input type="hidden" name="tourId" value={tourId} />
       <input type="hidden" name="showId" value={showId} />
 
+      {/* Capacity — read-only */}
+      {cap > 0 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{cap.toLocaleString()}</span>
+          <span>capacity</span>
+        </div>
+      )}
+
       {/* Estimated section */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Estimated (pre-show)
         </p>
         <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Est. ticket price">
+            <MoneyInput
+              name="ticketPrice"
+              defaultValue={penceToInput(data.ticketPricePence)}
+              onValueChange={(v) => setEstPrice(v)}
+            />
+          </Field>
+          <Field
+            label="Est. total revenue"
+            hint="Ticket price × est. tickets sold"
+          >
+            <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm tabular-nums text-muted-foreground">
+              {estRevenue != null
+                ? new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(estRevenue / 100)
+                : "—"}
+            </div>
+          </Field>
           <Field label="Est. tickets sold">
             <Input
               type="number"

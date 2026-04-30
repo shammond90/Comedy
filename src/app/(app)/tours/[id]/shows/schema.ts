@@ -152,6 +152,7 @@ export const showSchema = z.object({
     .nullable()
     .optional()
     .transform((v) => v ?? null),
+  newVenueCapacity: optionalInt,
 });
 
 export const showStatusValues = [
