@@ -48,6 +48,7 @@ export function NotificationBell({ userId }: { userId: string }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 
