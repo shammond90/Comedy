@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
-import { tours, comedians, venues } from "@/db/schema";
+import { tours, comedians, venues, showTasks, shows } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { canDelete, canEdit, canInvite, getTourRole } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -96,6 +96,26 @@ export default async function TourDetailPage({
         .where(and(eq(venues.orgId, tourOrgId), isNull(venues.archivedAt)))
     : [];
   const venueMap = new Map(venueRows.map((v) => [v.id, v]));
+
+  // Task counts per show (one query for the whole tour)
+  const showIds = perShow.map((p) => p.show.id);
+  const taskRows = showIds.length
+    ? await db
+        .select({
+          showId: showTasks.showId,
+          done: showTasks.done,
+        })
+        .from(showTasks)
+        .where(eq(showTasks.orgId, tourOrgId))
+    : [];
+  const taskCounts = new Map<string, { total: number; done: number }>();
+  for (const r of taskRows) {
+    const c = taskCounts.get(r.showId) ?? { total: 0, done: 0 };
+    c.total += 1;
+    if (r.done) c.done += 1;
+    taskCounts.set(r.showId, c);
+  }
+  void shows;
 
   // Sort the per-show list according to query params
   const sortedShows = [...perShow].sort((a, b) => {
@@ -332,6 +352,7 @@ export default async function TourDetailPage({
                   <SortableTH tourId={t.id} k="city" sort={sort} dir={dir}>City / venue</SortableTH>
                   <SortableTH tourId={t.id} k="status" sort={sort} dir={dir}>Status</SortableTH>
                   <SortableTH tourId={t.id} k="sold" sort={sort} dir={dir} align="right">Sold / cap</SortableTH>
+                  <TH className="text-right">Tasks</TH>
                   {showFinancials && <SortableTH tourId={t.id} k="revenue" sort={sort} dir={dir} align="right">Revenue</SortableTH>}
                   {showFinancials && <SortableTH tourId={t.id} k="net" sort={sort} dir={dir} align="right">Net</SortableTH>}
                 </TR>
@@ -365,6 +386,13 @@ export default async function TourDetailPage({
                         {show.ticketCapacity != null
                           ? ` / ${show.ticketCapacity}`
                           : ""}
+                      </TD>
+                      <TD className="text-right tabular-nums text-xs text-muted-foreground">
+                        {(() => {
+                          const c = taskCounts.get(show.id);
+                          if (!c || c.total === 0) return "—";
+                          return `${c.done}/${c.total}`;
+                        })()}
                       </TD>
                       {showFinancials && (
                         <TD className="text-right tabular-nums">

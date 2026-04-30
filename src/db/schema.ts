@@ -637,6 +637,34 @@ export const notifications = pgTable(
   ],
 );
 
+export const showTasks = pgTable(
+  "show_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    showId: uuid("show_id")
+      .notNull()
+      .references(() => shows.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    done: boolean("done").notNull().default(false),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    doneByUserId: uuid("done_by_user_id"),
+    dueAt: date("due_at"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("show_tasks_show_idx").on(t.showId, t.sortOrder),
+  ],
+);
+
 /* -------------------------------------------------------------------------- */
 /*                                  Relations                                 */
 /* -------------------------------------------------------------------------- */
@@ -695,6 +723,8 @@ export type ActivityLog = typeof activityLog.$inferSelect;
 export type ActivityAction = (typeof activityActionEnum.enumValues)[number];
 export type Notification = typeof notifications.$inferSelect;
 export type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
+export type ShowTask = typeof showTasks.$inferSelect;
+export type NewShowTask = typeof showTasks.$inferInsert;
 
 // Re-exported for migration files that need raw SQL helpers.
 export { sql };

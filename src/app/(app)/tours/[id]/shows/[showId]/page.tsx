@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { tours, venues, reminders } from "@/db/schema";
+import { tours, venues, reminders, showTasks } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { canEdit, getTourRole } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +43,7 @@ import {
   type AccommodationRow,
   type TravelRow,
 } from "./sub-forms";
+import { ShowTasksCard } from "./tasks-card";
 
 export default async function ShowDetailPage({
   params,
@@ -49,11 +51,14 @@ export default async function ShowDetailPage({
   params: Promise<{ id: string; showId: string }>;
 }) {
   const { id: tourId, showId } = await params;
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
 
   const data = await getShowFinancials(orgId, showId);
   if (!data) notFound();
   const { show: s, accommodations, travel, fin } = data;
+
+  const tourRole = await getTourRole(user.id, tourId);
+  const userCanEdit = canEdit(tourRole?.role ?? null);
 
   const [t] = await db
     .select({ id: tours.id, name: tours.name })
@@ -82,6 +87,18 @@ export default async function ShowDetailPage({
       ),
     )
     .orderBy(asc(reminders.dueAt));
+
+  const tasks = await db
+    .select({
+      id: showTasks.id,
+      label: showTasks.label,
+      done: showTasks.done,
+      doneAt: showTasks.doneAt,
+      doneByUserId: showTasks.doneByUserId,
+    })
+    .from(showTasks)
+    .where(eq(showTasks.showId, showId))
+    .orderBy(asc(showTasks.sortOrder));
 
   return (
     <div className="space-y-8">
@@ -338,6 +355,20 @@ export default async function ShowDetailPage({
       </Card>
 
       {/* Reminders */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ShowTasksCard
+            showId={showId}
+            tasks={tasks}
+            canEdit={userCanEdit}
+            currentUserId={user.id}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Reminders</CardTitle>
