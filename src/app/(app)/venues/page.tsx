@@ -4,9 +4,10 @@ import { db } from "@/db/client";
 import { venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { PageHeader } from "@/components/app/page-header";
+import { VenueFilterBar } from "./filter-bar";
+
 
 const VENUE_TYPES = [
   "comedy_club",
@@ -16,8 +17,6 @@ const VENUE_TYPES = [
   "pub",
   "other",
 ] as const;
-
-const CAPACITY_OPS = ["", "lt", "gt", "between"] as const;
 
 export default async function VenuesPage({
   searchParams,
@@ -101,86 +100,14 @@ export default async function VenuesPage({
         }
       />
 
-      <form
-        method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-surface p-3"
-      >
-        <div className="flex-1 min-w-[12rem]">
-          <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">
-            Search
-          </label>
-          <Input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Name, city, contact…"
-          />
-        </div>
-        <div>
-          <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">
-            Type
-          </label>
-          <Select name="type" defaultValue={type}>
-            <option value="">All</option>
-            {VENUE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t.replace(/_/g, " ")}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">
-            Capacity
-          </label>
-          <Select name="capOp" defaultValue={capOp}>
-            <option value="">Any</option>
-            <option value="lt">Less than</option>
-            <option value="gt">More than</option>
-            <option value="between">Between</option>
-          </Select>
-        </div>
-        {(capOp === "gt" || capOp === "between") && (
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">
-              Min
-            </label>
-            <Input
-              type="number"
-              name="capMin"
-              defaultValue={capMin}
-              min={0}
-              className="w-24"
-            />
-          </div>
-        )}
-        {(capOp === "lt" || capOp === "between") && (
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">
-              Max
-            </label>
-            <Input
-              type="number"
-              name="capMax"
-              defaultValue={capMax}
-              min={0}
-              className="w-24"
-            />
-          </div>
-        )}
-        <div className="flex gap-2">
-          <Button type="submit" variant="accent">
-            Filter
-          </Button>
-          {hasFilters && (
-            <Link href="/venues">
-              <Button type="button" variant="ghost">
-                Clear
-              </Button>
-            </Link>
-          )}
-        </div>
-      </form>
+      <VenueFilterBar
+        q={q}
+        type={type}
+        capOp={capOp}
+        capMin={capMin}
+        capMax={capMax}
+        hasFilters={hasFilters}
+      />
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -227,4 +154,4 @@ export default async function VenuesPage({
   );
 }
 
-void CAPACITY_OPS;
+
