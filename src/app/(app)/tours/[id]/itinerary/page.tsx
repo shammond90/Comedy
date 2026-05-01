@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { tours } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { getTourRole } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
 import {
@@ -25,8 +29,19 @@ export default async function TourItineraryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { orgId } = await requireOrg();
-  const data = await loadItineraryData(orgId, id);
+  const { user } = await requireOrg();
+
+  const tourRole = await getTourRole(user.id, id);
+  if (!tourRole) notFound();
+
+  const [tourRow] = await db
+    .select({ orgId: tours.orgId })
+    .from(tours)
+    .where(eq(tours.id, id))
+    .limit(1);
+  if (!tourRow) notFound();
+
+  const data = await loadItineraryData(tourRow.orgId, id);
   if (!data) notFound();
 
   const days = buildDayBuckets(data);
