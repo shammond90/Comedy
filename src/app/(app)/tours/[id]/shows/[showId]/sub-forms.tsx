@@ -330,18 +330,18 @@ function penceToDisplay(p: number | null | undefined): string {
 function isoToDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, "0");
-  const dy = String(d.getDate()).padStart(2, "0");
-  const h = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dy = String(d.getUTCDate()).padStart(2, "0");
+  const h = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(d.getUTCMinutes()).padStart(2, "0");
   return `${y}-${mo}-${dy}T${h}:${mi}`;
 }
 
 function formatTimePart(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 function formatDatePart(iso: string | null | undefined): string | null {
