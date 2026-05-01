@@ -8,7 +8,23 @@ import { cache } from "react";
  */
 export const resolveUserEmails = cache(
   async (userIds: string[]): Promise<Map<string, string>> => {
+    const profiles = await resolveUserProfiles(userIds);
     const out = new Map<string, string>();
+    for (const [id, p] of profiles) {
+      out.set(id, p.email);
+    }
+    return out;
+  },
+);
+
+export type UserProfile = { email: string; displayName: string | null };
+
+/**
+ * Resolve user IDs to { email, displayName } via the Supabase admin API.
+ */
+export const resolveUserProfiles = cache(
+  async (userIds: string[]): Promise<Map<string, UserProfile>> => {
+    const out = new Map<string, UserProfile>();
     if (userIds.length === 0) return out;
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,7 +41,12 @@ export const resolveUserEmails = cache(
 
     const wanted = new Set(userIds);
     for (const u of data.users) {
-      if (wanted.has(u.id) && u.email) out.set(u.id, u.email);
+      if (wanted.has(u.id) && u.email) {
+        out.set(u.id, {
+          email: u.email,
+          displayName: (u.user_metadata?.display_name as string | undefined) ?? null,
+        });
+      }
     }
     return out;
   },

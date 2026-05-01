@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { invitations, orgMembers } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { canInvite, getOrgRole, isOwner } from "@/lib/permissions";
-import { resolveUserEmails } from "@/lib/users";
+import { resolveUserProfiles } from "@/lib/users";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH } from "@/components/ui/table";
@@ -26,7 +26,7 @@ export default async function TeamSettingsPage() {
     .where(eq(orgMembers.orgId, orgId))
     .orderBy(desc(orgMembers.createdAt));
 
-  const memberEmails = await resolveUserEmails(members.map((m) => m.userId));
+  const memberProfiles = await resolveUserProfiles(members.map((m) => m.userId));
 
   const pending = await db
     .select({
@@ -88,7 +88,8 @@ export default async function TeamSettingsPage() {
                 <MemberRow
                   key={m.userId}
                   userId={m.userId}
-                  email={memberEmails.get(m.userId) ?? null}
+                  email={memberProfiles.get(m.userId)?.email ?? null}
+                  displayName={memberProfiles.get(m.userId)?.displayName ?? null}
                   isCurrent={m.userId === user.id}
                   role={m.role}
                   canViewFinancials={m.canViewFinancials}

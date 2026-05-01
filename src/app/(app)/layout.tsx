@@ -13,7 +13,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-1 min-h-screen bg-background">
-      <Sidebar userEmail={user.email ?? ""} signOutAction={signOut} />
+      <Sidebar displayName={(user.user_metadata?.display_name as string | undefined) ?? user.email ?? ""} signOutAction={signOut} />
       <main className="flex-1 min-w-0">
         <div className="mx-auto max-w-6xl px-8 py-10">
           <div className="pointer-events-none fixed right-6 top-4 z-40 flex items-center gap-3 justify-end">

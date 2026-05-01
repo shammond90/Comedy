@@ -46,6 +46,7 @@ function FinancialsToggle({
 export function MemberRow({
   userId,
   email,
+  displayName,
   isCurrent,
   role,
   canViewFinancials,
@@ -54,6 +55,7 @@ export function MemberRow({
 }: {
   userId: string;
   email: string | null;
+  displayName: string | null;
   isCurrent: boolean;
   role: string;
   canViewFinancials: boolean;
@@ -64,7 +66,14 @@ export function MemberRow({
   return (
     <tr className="border-b border-border last:border-0">
       <td className="px-4 py-3 text-sm">
-        {email ? (
+        {displayName ? (
+          <div>
+            <span className="font-medium">{displayName}</span>
+            {email && (
+              <p className="text-xs text-muted-foreground mt-0.5">{email}</p>
+            )}
+          </div>
+        ) : email ? (
           <span className="font-medium">{email}</span>
         ) : (
           <span className="font-mono text-xs text-muted-foreground">
@@ -200,6 +209,7 @@ export function CollaboratorRow({
   id,
   userId,
   email,
+  displayName,
   tourId,
   role,
   canViewFinancials,
@@ -208,6 +218,7 @@ export function CollaboratorRow({
   id: string;
   userId: string;
   email: string | null;
+  displayName: string | null;
   tourId: string;
   role: string;
   canViewFinancials: boolean;
@@ -217,7 +228,14 @@ export function CollaboratorRow({
   return (
     <tr className="border-b border-border last:border-0">
       <td className="px-4 py-3 text-sm">
-        {email ? (
+        {displayName ? (
+          <div>
+            <span className="font-medium">{displayName}</span>
+            {email && (
+              <p className="text-xs text-muted-foreground mt-0.5">{email}</p>
+            )}
+          </div>
+        ) : email ? (
           <span className="font-medium">{email}</span>
         ) : (
           <span className="font-mono text-xs text-muted-foreground">

@@ -17,10 +17,10 @@ const items: Item[] = [
 ];
 
 export function Sidebar({
-  userEmail,
+  displayName,
   signOutAction,
 }: {
-  userEmail: string;
+  displayName: string;
   signOutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
@@ -69,7 +69,7 @@ export function Sidebar({
       </nav>
 
       <div className="mt-6 border-t border-border pt-4 px-3">
-        <p className="truncate text-xs text-subtle mb-2">{userEmail}</p>
+        <p className="truncate text-sm font-medium text-foreground mb-2">{displayName}</p>
         <div className="space-y-1 mb-3">
           <Link
             href="/help"

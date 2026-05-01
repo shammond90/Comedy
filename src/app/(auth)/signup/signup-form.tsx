@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/input";
 
 export function SignupForm() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export function SignupForm() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: { data: { display_name: name.trim() } },
       });
       if (error) {
         setError(error.message);
@@ -39,6 +41,16 @@ export function SignupForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      <Field label="Name">
+        <Input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          autoComplete="name"
+          placeholder="Your full name"
+        />
+      </Field>
       <Field label="Email">
         <Input
           type="email"
