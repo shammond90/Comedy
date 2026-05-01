@@ -14,6 +14,7 @@ import {
 } from "@/components/app/edit-lock-guard";
 import { ShowForm } from "../../show-form";
 import { updateShowAction } from "../../actions";
+import { resolveUserProfiles } from "@/lib/users";
 
 export default async function EditShowPage({
   params,
@@ -57,6 +58,9 @@ export default async function EditShowPage({
   const action = updateShowAction.bind(null, tourId, showId);
 
   if (!lock.acquired) {
+    const profiles = await resolveUserProfiles([lock.userId]);
+    const profile = profiles.get(lock.userId);
+    const holderName = profile?.displayName ?? profile?.email ?? "Another user";
     return (
       <div className="space-y-6">
         <PageHeader
@@ -70,7 +74,7 @@ export default async function EditShowPage({
         <LockedNotice
           resourceType="show"
           resourceId={s.id}
-          holderId={lock.userId}
+          holderName={holderName}
           expiresAt={lock.expiresAt.toISOString()}
           detailUrl={detailUrl}
           canForceUnlock={canForceUnlock(tourRole.role)}

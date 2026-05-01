@@ -30,7 +30,6 @@ export function EditLockGuard({
   detailUrl: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const [warning, setWarning] = useState<string | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const beaconArmedRef = useRef(true);
@@ -42,7 +41,8 @@ export function EditLockGuard({
     setWarning(reason);
     // Best-effort release; navigation will fire beforeunload too but that's a no-op once already released.
     void releaseLockAction(resourceType, resourceId);
-    setTimeout(() => router.push(detailUrl), 600);
+    // Use hard navigation so the redirect is guaranteed regardless of React Router state.
+    setTimeout(() => { window.location.href = detailUrl; }, 600);
   }
 
   function resetIdle() {
@@ -154,14 +154,14 @@ export function EditLockGuard({
 export function LockedNotice({
   resourceType,
   resourceId,
-  holderId,
+  holderName,
   expiresAt,
   detailUrl,
   canForceUnlock,
 }: {
   resourceType: LockResourceType;
   resourceId: string;
-  holderId: string;
+  holderName: string;
   expiresAt: string;
   detailUrl: string;
   canForceUnlock: boolean;
@@ -183,8 +183,8 @@ export function LockedNotice({
       <div className="text-2xl">🔒</div>
       <h2 className="font-display text-xl">This page is being edited</h2>
       <p className="text-sm text-muted-foreground">
-        Locked by user{" "}
-        <span className="font-mono text-xs">{holderId.slice(0, 8)}…</span>
+        Locked by{" "}
+        <span className="font-medium">{holderName}</span>
         {" · "}
         expires in ~{minsLeft} min
       </p>

@@ -14,6 +14,7 @@ import {
 } from "@/components/app/edit-lock-guard";
 import { ComedianForm } from "../../comedian-form";
 import { updateComedianAction } from "../../actions";
+import { resolveUserProfiles } from "@/lib/users";
 
 export default async function EditComedianPage({
   params,
@@ -44,6 +45,9 @@ export default async function EditComedianPage({
   const action = updateComedianAction.bind(null, c.id);
 
   if (!lock.acquired) {
+    const profiles = await resolveUserProfiles([lock.userId]);
+    const profile = profiles.get(lock.userId);
+    const holderName = profile?.displayName ?? profile?.email ?? "Another user";
     return (
       <div className="space-y-6">
         <PageHeader
@@ -58,7 +62,7 @@ export default async function EditComedianPage({
         <LockedNotice
           resourceType="comedian"
           resourceId={c.id}
-          holderId={lock.userId}
+          holderName={holderName}
           expiresAt={lock.expiresAt.toISOString()}
           detailUrl={detailUrl}
           canForceUnlock={canForceUnlock(orgRole.role)}

@@ -14,6 +14,7 @@ import {
 } from "@/components/app/edit-lock-guard";
 import { VenueForm } from "../../venue-form";
 import { updateVenueAction } from "../../actions";
+import { resolveUserProfiles } from "@/lib/users";
 
 export default async function EditVenuePage({
   params,
@@ -44,6 +45,9 @@ export default async function EditVenuePage({
   const action = updateVenueAction.bind(null, v.id);
 
   if (!lock.acquired) {
+    const profiles = await resolveUserProfiles([lock.userId]);
+    const profile = profiles.get(lock.userId);
+    const holderName = profile?.displayName ?? profile?.email ?? "Another user";
     return (
       <div className="space-y-6">
         <PageHeader
@@ -58,7 +62,7 @@ export default async function EditVenuePage({
         <LockedNotice
           resourceType="venue"
           resourceId={v.id}
-          holderId={lock.userId}
+          holderName={holderName}
           expiresAt={lock.expiresAt.toISOString()}
           detailUrl={detailUrl}
           canForceUnlock={canForceUnlock(orgRole.role)}
