@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { comedians, shows, tours, venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
-import { visibleTourCondition } from "@/lib/permissions";
+import {
+  accessibleComedianIdsForOrg,
+  accessibleVenueIdsForOrg,
+  visibleTourCondition,
+} from "@/lib/permissions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
@@ -25,6 +29,20 @@ export default async function SearchPage({
   const p = `%${q}%`;
 
   const tourVisibility = await visibleTourCondition(user.id);
+  const allowedVenueIds = await accessibleVenueIdsForOrg(user.id, orgId);
+  const allowedComedianIds = await accessibleComedianIdsForOrg(user.id, orgId);
+  const venueScope =
+    allowedVenueIds === null
+      ? undefined
+      : allowedVenueIds.length === 0
+        ? sql`false`
+        : inArray(venues.id, allowedVenueIds);
+  const comedianScope =
+    allowedComedianIds === null
+      ? undefined
+      : allowedComedianIds.length === 0
+        ? sql`false`
+        : inArray(comedians.id, allowedComedianIds);
 
   const [tourRows, venueRows, comedianRows, showRows] = q
     ? await Promise.all([
@@ -59,6 +77,7 @@ export default async function SearchPage({
             and(
               eq(venues.orgId, orgId),
               isNull(venues.archivedAt),
+              venueScope,
               or(
                 ilike(venues.name, p),
                 ilike(venues.city, p),
@@ -80,6 +99,7 @@ export default async function SearchPage({
             and(
               eq(comedians.orgId, orgId),
               isNull(comedians.archivedAt),
+              comedianScope,
               or(
                 ilike(comedians.stageName, p),
                 ilike(comedians.legalName, p),

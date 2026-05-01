@@ -3,6 +3,7 @@ import { and, asc, eq, gte, ilike, inArray, isNull, lte, or } from "drizzle-orm"
 import { db } from "@/db/client";
 import { venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { accessibleVenueIdsForOrg } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { PageHeader } from "@/components/app/page-header";
@@ -29,7 +30,7 @@ export default async function VenuesPage({
     capMax?: string;
   }>;
 }) {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const type = (sp.type ?? "").trim();
@@ -38,6 +39,16 @@ export default async function VenuesPage({
   const capMax = (sp.capMax ?? "").trim();
 
   const conds = [eq(venues.orgId, orgId), isNull(venues.archivedAt)];
+
+  // Collab-only users see only venues linked to their accessible tours.
+  const allowedVenueIds = await accessibleVenueIdsForOrg(user.id, orgId);
+  if (allowedVenueIds !== null) {
+    if (allowedVenueIds.length === 0) {
+      conds.push(eq(venues.id, "00000000-0000-0000-0000-000000000000"));
+    } else {
+      conds.push(inArray(venues.id, allowedVenueIds));
+    }
+  }
 
   if (q) {
     const p = `%${q}%`;

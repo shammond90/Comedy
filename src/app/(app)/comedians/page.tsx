@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { and, asc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { comedians } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { accessibleComedianIdsForOrg } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -13,11 +14,20 @@ export default async function ComediansPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { orgId } = await requireOrg();
+  const { user, orgId } = await requireOrg();
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
 
   const conds = [eq(comedians.orgId, orgId), isNull(comedians.archivedAt)];
+
+  const allowedComedianIds = await accessibleComedianIdsForOrg(user.id, orgId);
+  if (allowedComedianIds !== null) {
+    if (allowedComedianIds.length === 0) {
+      conds.push(eq(comedians.id, "00000000-0000-0000-0000-000000000000"));
+    } else {
+      conds.push(inArray(comedians.id, allowedComedianIds));
+    }
+  }
   if (q) {
     const p = `%${q}%`;
     conds.push(

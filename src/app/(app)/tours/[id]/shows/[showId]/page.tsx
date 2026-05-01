@@ -51,21 +51,24 @@ export default async function ShowDetailPage({
   params: Promise<{ id: string; showId: string }>;
 }) {
   const { id: tourId, showId } = await params;
-  const { user, orgId } = await requireOrg();
+  const { user } = await requireOrg();
+
+  const tourRole = await getTourRole(user.id, tourId);
+  if (!tourRole) notFound();
+  const userCanEdit = canEdit(tourRole.role);
+  const showFinancials = tourRole.canViewFinancials;
+
+  const [t] = await db
+    .select({ id: tours.id, name: tours.name, orgId: tours.orgId })
+    .from(tours)
+    .where(eq(tours.id, tourId))
+    .limit(1);
+  if (!t) notFound();
+  const orgId = t.orgId;
 
   const data = await getShowFinancials(orgId, showId);
   if (!data) notFound();
   const { show: s, accommodations, travel, fin } = data;
-
-  const tourRole = await getTourRole(user.id, tourId);
-  const userCanEdit = canEdit(tourRole?.role ?? null);
-
-  const [t] = await db
-    .select({ id: tours.id, name: tours.name })
-    .from(tours)
-    .where(and(eq(tours.id, tourId), eq(tours.orgId, orgId)))
-    .limit(1);
-  if (!t) notFound();
 
   const venueRow = s.venueId
     ? (
@@ -177,6 +180,7 @@ export default async function ShowDetailPage({
       </Card>
 
       {/* Financial summary */}
+      {showFinancials && (
       <div className="grid gap-4 md:grid-cols-4">
         <Link href={`/tours/${tourId}/shows/${s.id}/tickets`} className="block group">
           <Card className="h-full transition-colors group-hover:border-foreground/30">
@@ -254,8 +258,10 @@ export default async function ShowDetailPage({
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Cost breakdown table */}
+      {showFinancials && (
       <Card>
         <CardHeader>
           <CardTitle>Cost breakdown</CardTitle>
@@ -297,6 +303,7 @@ export default async function ShowDetailPage({
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Accommodation */}
       <Card>

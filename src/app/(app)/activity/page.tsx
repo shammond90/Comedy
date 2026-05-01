@@ -1,7 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db/client";
-import { activityLog } from "@/db/schema";
+import { activityLog, shows } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import {
+  isOrgMember,
+  listCollabTourIdsForOrg,
+} from "@/lib/permissions";
 import { ActivityList, type ActivityRow } from "@/components/app/activity-list";
 import { PageHeader } from "@/components/app/page-header";
 import {
@@ -15,6 +19,38 @@ export const dynamic = "force-dynamic";
 
 export default async function ActivityPage() {
   const { user, orgId } = await requireOrg();
+
+  const conds = [eq(activityLog.orgId, orgId)];
+
+  // Collab-only users see only activity for their accessible tours/shows.
+  if (!(await isOrgMember(user.id, orgId))) {
+    const tourIds = await listCollabTourIdsForOrg(user.id, orgId);
+    if (tourIds.length === 0) {
+      conds.push(eq(activityLog.id, "00000000-0000-0000-0000-000000000000"));
+    } else {
+      const showRows = await db
+        .select({ id: shows.id })
+        .from(shows)
+        .where(and(eq(shows.orgId, orgId), inArray(shows.tourId, tourIds)));
+      const showIds = showRows.map((r) => r.id);
+      const allowed = [
+        and(
+          eq(activityLog.resourceType, "tour"),
+          inArray(activityLog.resourceId, tourIds),
+        ),
+        ...(showIds.length > 0
+          ? [
+              and(
+                eq(activityLog.resourceType, "show"),
+                inArray(activityLog.resourceId, showIds),
+              ),
+            ]
+          : []),
+      ];
+      conds.push(or(...allowed)!);
+    }
+  }
+
   const rows = await db
     .select({
       id: activityLog.id,
@@ -27,7 +63,7 @@ export default async function ActivityPage() {
       userId: activityLog.userId,
     })
     .from(activityLog)
-    .where(eq(activityLog.orgId, orgId))
+    .where(and(...conds))
     .orderBy(desc(activityLog.createdAt))
     .limit(100);
 
