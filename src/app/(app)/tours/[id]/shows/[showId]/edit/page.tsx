@@ -95,6 +95,7 @@ export default async function EditShowPage({
           venues={venueRows}
           action={action}
           submitLabel="Save changes"
+          canViewFinancials={tourRole.canViewFinancials}
         />
       </div>
     </EditLockGuard>

@@ -48,6 +48,7 @@ type Props = {
   venues: Pick<Venue, "id" | "name" | "city" | "country" | "capacity">[];
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   submitLabel: string;
+  canViewFinancials?: boolean;
 };
 
 function penceToInput(v: number | null | undefined) {
@@ -60,6 +61,7 @@ export function ShowForm({
   venues,
   action,
   submitLabel,
+  canViewFinancials = true,
 }: Props) {
   const [serverState, setServerState] = useState<ActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -382,6 +384,7 @@ export function ShowForm({
         </CardContent>
       </Card>
 
+      {canViewFinancials && (
       <Card>
         <CardHeader>
           <CardTitle>Venue financial terms</CardTitle>
@@ -436,7 +439,9 @@ export function ShowForm({
           </Field>
         </CardContent>
       </Card>
+      )}
 
+      {canViewFinancials && (
       <Card>
         <CardHeader>
           <CardTitle>Local marketing</CardTitle>
@@ -457,6 +462,7 @@ export function ShowForm({
           </Field>
         </CardContent>
       </Card>
+      )}
 
       {(serverState.error) && (
         <p className="text-sm text-destructive">{serverState.error}</p>

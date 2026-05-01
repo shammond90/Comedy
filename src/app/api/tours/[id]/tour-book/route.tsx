@@ -12,6 +12,7 @@ import {
   reminders,
 } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
+import { getTourRole } from "@/lib/permissions";
 import { TourBookDocument } from "./tour-book-document";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +22,23 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: tourId } = await params;
-  const { orgId } = await requireOrg();
+  const { user } = await requireOrg();
+
+  const tourRole = await getTourRole(user.id, tourId);
+  if (!tourRole) {
+    return NextResponse.json({ error: "Tour not found" }, { status: 404 });
+  }
 
   const [tour] = await db
     .select()
     .from(tours)
-    .where(and(eq(tours.id, tourId), eq(tours.orgId, orgId)))
+    .where(eq(tours.id, tourId))
     .limit(1);
   if (!tour) {
     return NextResponse.json({ error: "Tour not found" }, { status: 404 });
   }
+
+  const orgId = tour.orgId;
 
   const [comedian] = await db
     .select()
@@ -81,7 +89,9 @@ export async function GET(
     reminders: allReminders,
   };
 
-  const buffer = await renderToBuffer(<TourBookDocument data={data} />);
+  const buffer = await renderToBuffer(
+    <TourBookDocument data={data} showFinancials={tourRole.canViewFinancials} />,
+  );
   // Convert Node Buffer to a Blob so it satisfies BodyInit in TS lib defs.
   const blob = new Blob([new Uint8Array(buffer)], {
     type: "application/pdf",

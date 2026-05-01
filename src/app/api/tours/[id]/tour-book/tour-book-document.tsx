@@ -840,7 +840,7 @@ function PageFooter({ tourName }: { tourName: string }) {
   );
 }
 
-function CoverPage({ data }: { data: TourBookData }) {
+function CoverPage({ data, showFinancials }: { data: TourBookData; showFinancials: boolean }) {
   const { tour, comedian, shows } = data;
   const dateRange = formatRange(tour.startDate, tour.endDate);
   const cities = Array.from(
@@ -884,7 +884,7 @@ function CoverPage({ data }: { data: TourBookData }) {
             </Text>
           </View>
         )}
-        {tour.budgetPence !== null && tour.budgetPence !== undefined && (
+        {showFinancials && tour.budgetPence !== null && tour.budgetPence !== undefined && (
           <View style={styles.coverMetaItem}>
             <Text style={styles.coverMetaLabel}>Budget</Text>
             <Text style={styles.coverMetaValue}>
@@ -1342,14 +1342,14 @@ function VenueAppendix({ data }: { data: TourBookData }) {
 /*                                  Document                                  */
 /* -------------------------------------------------------------------------- */
 
-export function TourBookDocument({ data }: { data: TourBookData }) {
+export function TourBookDocument({ data, showFinancials }: { data: TourBookData; showFinancials: boolean }) {
   const days = buildDayBuckets(data);
   return (
     <Document
       title={`${data.tour.name} — Tour Book`}
       author={data.comedian?.stageName ?? "Comedy"}
     >
-      <CoverPage data={data} />
+      <CoverPage data={data} showFinancials={showFinancials} />
       <ContentsPage data={data} days={days} />
       <SchedulePage data={data} />
       {days.map((day, i) => (

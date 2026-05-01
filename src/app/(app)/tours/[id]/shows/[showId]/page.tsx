@@ -330,6 +330,7 @@ export default async function ShowDetailPage({
             addAction={addAccommodation}
             updateAction={updateAccommodation}
             deleteAction={deleteAccommodation}
+            canViewFinancials={showFinancials}
           />
         </CardContent>
       </Card>
@@ -357,6 +358,7 @@ export default async function ShowDetailPage({
             addAction={addTravel}
             updateAction={updateTravel}
             deleteAction={deleteTravel}
+            canViewFinancials={showFinancials}
           />
         </CardContent>
       </Card>

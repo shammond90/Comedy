@@ -47,10 +47,12 @@ export function AddAccommodationForm({
   tourId,
   showId,
   action,
+  canViewFinancials = true,
 }: {
   tourId: string;
   showId: string;
   action: ServerAction;
+  canViewFinancials?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { isPending, submit } = useSubmitForm(action);
@@ -94,12 +96,14 @@ export function AddAccommodationForm({
         <Field label="Hotel name" error={errors.hotelName?.message}>
           <Input {...register("hotelName")} />
         </Field>
+        {canViewFinancials && (
         <Field label="Cost" error={errors.cost?.message}>
           <MoneyInput
             name="cost"
             onValueChange={(v) => setValue("cost", v, { shouldValidate: true })}
           />
         </Field>
+        )}
         <Field label="Address"><Input {...register("address")} /></Field>
         <Field label="Booking reference"><Input {...register("bookingReference")} /></Field>
         <Field label="Check-in date"><Input type="date" {...register("checkIn")} /></Field>
@@ -137,10 +141,12 @@ export function AddTravelForm({
   tourId,
   showId,
   action,
+  canViewFinancials = true,
 }: {
   tourId: string;
   showId: string;
   action: ServerAction;
+  canViewFinancials?: boolean;
 }) {
   const { isPending, submit } = useSubmitForm(action);
   const {
@@ -183,12 +189,14 @@ export function AddTravelForm({
             <option value="other">Other</option>
           </Select>
         </Field>
+        {canViewFinancials && (
         <Field label="Cost" error={errors.cost?.message}>
           <MoneyInput
             name="cost"
             onValueChange={(v) => setValue("cost", v, { shouldValidate: true })}
           />
         </Field>
+        )}
         <Field label="From"><Input {...register("departureLocation")} /></Field>
         <Field label="Departure date/time">
           <Input type="datetime-local" {...register("departureAt")} />
@@ -375,12 +383,14 @@ function EditAccommodationForm({
   showId,
   action,
   onCancel,
+  canViewFinancials = true,
 }: {
   row: AccommodationRow;
   tourId: string;
   showId: string;
   action: ServerAction;
   onCancel: () => void;
+  canViewFinancials?: boolean;
 }) {
   const { isPending, submit } = useSubmitForm(action);
   const { register, handleSubmit, setValue } = useForm({
@@ -408,6 +418,7 @@ function EditAccommodationForm({
       <input type="hidden" name="tourId" value={tourId} />
       <input type="hidden" name="showId" value={showId} />
       <Field label="Hotel name"><Input {...register("hotelName")} /></Field>
+      {canViewFinancials && (
       <Field label="Cost">
         <MoneyInput
           name="cost"
@@ -415,6 +426,7 @@ function EditAccommodationForm({
           onValueChange={(v) => setValue("cost", v)}
         />
       </Field>
+      )}
       <Field label="Address"><Input {...register("address")} /></Field>
       <Field label="Booking reference"><Input {...register("bookingReference")} /></Field>
       <Field label="Check-in date"><Input type="date" {...register("checkIn")} /></Field>
@@ -444,6 +456,7 @@ export function AccommodationsSection({
   addAction,
   updateAction,
   deleteAction,
+  canViewFinancials = true,
 }: {
   accommodations: AccommodationRow[];
   tourId: string;
@@ -451,6 +464,7 @@ export function AccommodationsSection({
   addAction: ServerAction;
   updateAction: ServerAction;
   deleteAction: ServerAction;
+  canViewFinancials?: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const { isPending: deletePending, submit: submitDelete } = useSubmitForm(deleteAction);
@@ -468,6 +482,7 @@ export function AccommodationsSection({
                   showId={showId}
                   action={updateAction}
                   onCancel={() => setEditingId(null)}
+                  canViewFinancials={canViewFinancials}
                 />
               </div>
             ) : (
@@ -484,7 +499,7 @@ export function AccommodationsSection({
                           ? `Check-out: ${fmtDateStr(a.checkOut)}${a.checkOutTime ? ` ${fmtTime(a.checkOutTime)}` : ""}`
                           : "Dates TBC"}
                     {a.bookingReference ? `  ·  Ref: ${a.bookingReference}` : ""}
-                    {a.costPence != null ? `  ·  ${formatPence(a.costPence)}` : ""}
+                    {canViewFinancials && a.costPence != null ? `  ·  ${formatPence(a.costPence)}` : ""}
                   </p>
                 </div>
                 <div className="flex gap-1 shrink-0">
@@ -515,7 +530,7 @@ export function AccommodationsSection({
           )}
         </div>
       )}
-      <AddAccommodationForm tourId={tourId} showId={showId} action={addAction} />
+      <AddAccommodationForm tourId={tourId} showId={showId} action={addAction} canViewFinancials={canViewFinancials} />
     </div>
   );
 }
@@ -544,12 +559,14 @@ function EditTravelForm({
   showId,
   action,
   onCancel,
+  canViewFinancials = true,
 }: {
   row: TravelRow;
   tourId: string;
   showId: string;
   action: ServerAction;
   onCancel: () => void;
+  canViewFinancials?: boolean;
 }) {
   const { isPending, submit } = useSubmitForm(action);
   const { register, handleSubmit, setValue } = useForm({
@@ -583,6 +600,7 @@ function EditTravelForm({
           <option value="other">Other</option>
         </Select>
       </Field>
+      {canViewFinancials && (
       <Field label="Cost">
         <MoneyInput
           name="cost"
@@ -590,6 +608,7 @@ function EditTravelForm({
           onValueChange={(v) => setValue("cost", v)}
         />
       </Field>
+      )}
       <Field label="From"><Input {...register("departureLocation")} /></Field>
       <Field label="Departure date/time">
         <Input type="datetime-local" {...register("departureAt")} />
@@ -621,6 +640,7 @@ export function TravelSection({
   addAction,
   updateAction,
   deleteAction,
+  canViewFinancials = true,
 }: {
   travelRows: TravelRow[];
   tourId: string;
@@ -628,6 +648,7 @@ export function TravelSection({
   addAction: ServerAction;
   updateAction: ServerAction;
   deleteAction: ServerAction;
+  canViewFinancials?: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const { isPending: deletePending, submit: submitDelete } = useSubmitForm(deleteAction);
@@ -645,6 +666,7 @@ export function TravelSection({
                   showId={showId}
                   action={updateAction}
                   onCancel={() => setEditingId(null)}
+                  canViewFinancials={canViewFinancials}
                 />
               </div>
             ) : (
@@ -690,7 +712,7 @@ export function TravelSection({
                 {/* Ref + cost */}
                 <div className="shrink-0 text-right text-xs text-muted-foreground space-y-0.5">
                   {tr.bookingReference && <p>{tr.bookingReference}</p>}
-                  {tr.costPence != null && <p className="tabular-nums">{formatPence(tr.costPence)}</p>}
+                  {canViewFinancials && tr.costPence != null && <p className="tabular-nums">{formatPence(tr.costPence)}</p>}
                 </div>
 
                 {/* Actions */}
@@ -722,7 +744,7 @@ export function TravelSection({
           )}
         </div>
       )}
-      <AddTravelForm tourId={tourId} showId={showId} action={addAction} />
+      <AddTravelForm tourId={tourId} showId={showId} action={addAction} canViewFinancials={canViewFinancials} />
     </div>
   );
 }
