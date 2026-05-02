@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
-import { venues } from "@/db/schema";
+import { shows, tours, venues } from "@/db/schema";
 import { requireOrg } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
@@ -12,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatusPill } from "@/components/ui/pill";
+import { formatDate } from "@/lib/utils";
 import { deleteVenueAction } from "../actions";
 
 export default async function VenueDetailPage({
@@ -28,7 +30,12 @@ export default async function VenueDetailPage({
     .limit(1);
   if (!v) notFound();
 
-  const fields: Array<[string, string | number | null]> = [
+  const venueShows = await db
+    .select({ show: shows, tour: { id: tours.id, name: tours.name } })
+    .from(shows)
+    .innerJoin(tours, eq(tours.id, shows.tourId))
+    .where(and(eq(shows.venueId, v.id), eq(shows.orgId, orgId), isNull(shows.archivedAt)))
+    .orderBy(asc(shows.showDate));  const fields: Array<[string, string | number | null]> = [
     ["Type", v.venueType.replace(/_/g, " ")],
     ["Capacity", v.capacity ?? "—"],
     ["Capacity notes", v.capacityNotes],
@@ -162,6 +169,36 @@ export default async function VenueDetailPage({
           )}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Show history</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {venueShows.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">No shows at this venue yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {venueShows.map(({ show, tour }) => (
+                <li key={show.id}>
+                  <Link
+                    href={`/tours/${tour.id}/shows/${show.id}`}
+                    className="flex items-center justify-between px-6 py-3 hover:bg-surface-2 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{formatDate(show.showDate)}</p>
+                      <p className="text-xs text-muted-foreground">{tour.name}</p>
+                    </div>
+                    <StatusPill status={show.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";

@@ -4,12 +4,13 @@ import {
   travel,
   tours,
   venues,
+  comedians,
   type Show,
   type Accommodation,
   type Travel,
 } from "@/db/schema";
 import { db } from "@/db/client";
-import { and, eq, isNull, sum, count, asc, gte } from "drizzle-orm";
+import { and, desc, eq, isNull, sum, count, asc, gte } from "drizzle-orm";
 
 export type ShowFinancials = {
   ticketsSold: number;
@@ -363,4 +364,207 @@ export async function getComedianStats(
     topVenues,
     topCities,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Org-wide report aggregations                                               */
+/* -------------------------------------------------------------------------- */
+
+export type OrgTourReport = {
+  tourId: string;
+  tourName: string;
+  comedianName: string;
+  status: string;
+  startDate: string | null;
+  showCount: number;
+  revenuePence: number;
+  costsPence: number;
+  netPence: number;
+  avgOccupancyPercent: number | null;
+  hasEstimates: boolean;
+};
+
+export type OrgComedianReport = {
+  comedianId: string;
+  comedianName: string;
+  tourCount: number;
+  showCount: number;
+  revenuePence: number;
+  costsPence: number;
+  netPence: number;
+  avgRevenuePerShow: number;
+  avgOccupancyPercent: number | null;
+  hasEstimates: boolean;
+};
+
+export type OrgVenueReport = {
+  venueId: string;
+  venueName: string;
+  city: string | null;
+  showCount: number;
+  revenuePence: number;
+  avgOccupancyPercent: number | null;
+};
+
+export async function getOrgReportData(orgId: string): Promise<{
+  tourReports: OrgTourReport[];
+  comedianReports: OrgComedianReport[];
+  venueReports: OrgVenueReport[];
+}> {
+  // Fetch all non-archived tours with comedian name
+  const tourRows = await db
+    .select({
+      id: tours.id,
+      name: tours.name,
+      status: tours.status,
+      startDate: tours.startDate,
+      comedianId: tours.comedianId,
+      comedianStageName: comedians.stageName,
+    })
+    .from(tours)
+    .leftJoin(comedians, eq(comedians.id, tours.comedianId))
+    .where(and(eq(tours.orgId, orgId), isNull(tours.archivedAt)));
+
+  // Fetch all non-archived shows with venue
+  const showRows = await db
+    .select({ show: shows, venue: venues })
+    .from(shows)
+    .leftJoin(venues, eq(venues.id, shows.venueId))
+    .where(and(eq(shows.orgId, orgId), isNull(shows.archivedAt)))
+    .orderBy(asc(shows.showDate));
+
+  // Accommodation + travel costs per show
+  const accomTotals = new Map<string, number>();
+  const travelTotals = new Map<string, number>();
+  if (showRows.length > 0) {
+    const allAccom = await db.select().from(accommodations).where(eq(accommodations.orgId, orgId));
+    const allTravel = await db.select().from(travel).where(eq(travel.orgId, orgId));
+    for (const a of allAccom) {
+      accomTotals.set(a.showId, (accomTotals.get(a.showId) ?? 0) + (a.costPence ?? 0));
+    }
+    for (const t of allTravel) {
+      travelTotals.set(t.showId, (travelTotals.get(t.showId) ?? 0) + (t.costPence ?? 0));
+    }
+  }
+
+  // Build a tourId → comedian map
+  const tourComedianMap = new Map(tourRows.map((t) => [t.id, t]));
+
+  // ---- Tour reports ----
+  const tourShowMap = new Map<string, typeof showRows>();
+  for (const r of showRows) {
+    const arr = tourShowMap.get(r.show.tourId) ?? [];
+    arr.push(r);
+    tourShowMap.set(r.show.tourId, arr);
+  }
+
+  const tourReports: OrgTourReport[] = tourRows.map((t) => {
+    const myShows = tourShowMap.get(t.id) ?? [];
+    let revenuePence = 0, costsPence = 0, occupancyTotal = 0, occupancyShows = 0;
+    let hasEstimates = false;
+    for (const { show } of myShows) {
+      const fin = computeShowFinancials(show, accomTotals.get(show.id) ?? 0, travelTotals.get(show.id) ?? 0);
+      revenuePence += fin.ticketRevenuePence;
+      costsPence += fin.totalCostsPence;
+      if (fin.isEstimated) hasEstimates = true;
+      if (fin.occupancyPercent != null) { occupancyTotal += fin.occupancyPercent; occupancyShows++; }
+    }
+    return {
+      tourId: t.id,
+      tourName: t.name,
+      comedianName: t.comedianStageName ?? "—",
+      status: t.status,
+      startDate: t.startDate,
+      showCount: myShows.length,
+      revenuePence,
+      costsPence,
+      netPence: revenuePence - costsPence,
+      avgOccupancyPercent: occupancyShows > 0 ? Math.round(occupancyTotal / occupancyShows) : null,
+      hasEstimates,
+    };
+  }).sort((a, b) => (b.startDate ?? "").localeCompare(a.startDate ?? ""));
+
+  // ---- Comedian reports ----
+  const comedianTourIds = new Map<string, Set<string>>();
+  const comedianAgg = new Map<string, {
+    name: string;
+    shows: number;
+    revenue: number;
+    costs: number;
+    occupancyTotal: number;
+    occupancyCount: number;
+    hasEstimates: boolean;
+  }>();
+
+  for (const { show } of showRows) {
+    const tourInfo = tourComedianMap.get(show.tourId);
+    if (!tourInfo?.comedianId) continue;
+    const cid = tourInfo.comedianId;
+    const fin = computeShowFinancials(show, accomTotals.get(show.id) ?? 0, travelTotals.get(show.id) ?? 0);
+
+    const entry = comedianAgg.get(cid) ?? {
+      name: tourInfo.comedianStageName ?? "—",
+      shows: 0,
+      revenue: 0,
+      costs: 0,
+      occupancyTotal: 0,
+      occupancyCount: 0,
+      hasEstimates: false,
+    };
+    entry.shows++;
+    entry.revenue += fin.ticketRevenuePence;
+    entry.costs += fin.totalCostsPence;
+    if (fin.isEstimated) entry.hasEstimates = true;
+    if (fin.occupancyPercent != null) { entry.occupancyTotal += fin.occupancyPercent; entry.occupancyCount++; }
+    comedianAgg.set(cid, entry);
+
+    // Track distinct tours per comedian
+    const tourSet = comedianTourIds.get(cid) ?? new Set<string>();
+    tourSet.add(show.tourId);
+    comedianTourIds.set(cid, tourSet);
+  }
+
+  const comedianReports: OrgComedianReport[] = Array.from(comedianAgg.entries()).map(([cid, d]) => ({
+    comedianId: cid,
+    comedianName: d.name,
+    tourCount: comedianTourIds.get(cid)?.size ?? 0,
+    showCount: d.shows,
+    revenuePence: d.revenue,
+    costsPence: d.costs,
+    netPence: d.revenue - d.costs,
+    avgRevenuePerShow: d.shows > 0 ? Math.round(d.revenue / d.shows) : 0,
+    avgOccupancyPercent: d.occupancyCount > 0 ? Math.round(d.occupancyTotal / d.occupancyCount) : null,
+    hasEstimates: d.hasEstimates,
+  })).sort((a, b) => b.revenuePence - a.revenuePence);
+
+  // ---- Venue reports ----
+  const venueAgg = new Map<string, {
+    name: string;
+    city: string | null;
+    shows: number;
+    revenue: number;
+    occupancyTotal: number;
+    occupancyCount: number;
+  }>();
+
+  for (const { show, venue } of showRows) {
+    if (!venue) continue;
+    const fin = computeShowFinancials(show, accomTotals.get(show.id) ?? 0, travelTotals.get(show.id) ?? 0);
+    const entry = venueAgg.get(venue.id) ?? { name: venue.name, city: venue.city ?? null, shows: 0, revenue: 0, occupancyTotal: 0, occupancyCount: 0 };
+    entry.shows++;
+    entry.revenue += fin.ticketRevenuePence;
+    if (fin.occupancyPercent != null) { entry.occupancyTotal += fin.occupancyPercent; entry.occupancyCount++; }
+    venueAgg.set(venue.id, entry);
+  }
+
+  const venueReports: OrgVenueReport[] = Array.from(venueAgg.entries()).map(([vid, d]) => ({
+    venueId: vid,
+    venueName: d.name,
+    city: d.city,
+    showCount: d.shows,
+    revenuePence: d.revenue,
+    avgOccupancyPercent: d.occupancyCount > 0 ? Math.round(d.occupancyTotal / d.occupancyCount) : null,
+  })).sort((a, b) => b.showCount - a.showCount);
+
+  return { tourReports, comedianReports, venueReports };
 }

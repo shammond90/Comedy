@@ -359,6 +359,7 @@ export default async function TourDetailPage({
                   <TH className="text-right">Tasks</TH>
                   {showFinancials && <SortableTH tourId={t.id} k="revenue" sort={sort} dir={dir} align="right">Revenue</SortableTH>}
                   {showFinancials && <SortableTH tourId={t.id} k="net" sort={sort} dir={dir} align="right">Net</SortableTH>}
+                  <TH className="text-right">PDF</TH>
                 </TR>
               </THead>
               <TBody>
@@ -414,6 +415,18 @@ export default async function TourDetailPage({
                           {fin.isEstimated && <EstChip />}
                         </TD>
                       )}
+                      <TD className="text-right">
+                        <a
+                          href={`/api/shows/${show.id}/settlement-sheet?type=summary`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Download summary settlement PDF"
+                        >
+                          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground">
+                            PDF
+                          </Button>
+                        </a>
+                      </TD>
                     </TR>
                   );
                 })}

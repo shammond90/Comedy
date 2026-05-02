@@ -16,6 +16,7 @@ const primaryItems = [
 
 const moreItems = [
   { href: "/", label: "Dashboard", icon: DashboardIcon, exact: true },
+  { href: "/reports", label: "Reports", icon: ActivityIcon, exact: false },
   { href: "/notifications", label: "Notifications", icon: BellIcon, exact: false },
   { href: "/activity", label: "Activity", icon: ActivityIcon, exact: false },
   { href: "/settings/team", label: "Team", icon: TeamIcon, exact: false },
