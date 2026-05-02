@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import {
@@ -33,6 +34,13 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "GigBook",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#C8553D",
 };
 
 export default function RootLayout({

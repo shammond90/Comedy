@@ -20,10 +20,10 @@ export function PageHeader({
     <header
       className={cn(
         // Bleed beyond the page padding so the blur backdrop reaches the edges of the content column.
-        "-mx-8 px-8 mb-8 border-b border-border",
+        "-mx-4 px-4 md:-mx-8 md:px-8 mb-6 md:mb-8 border-b border-border",
         sticky &&
-          "sticky top-0 z-30 bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/65",
-        "py-5 flex flex-wrap items-end justify-between gap-4",
+          "md:sticky md:top-0 md:z-30 md:bg-background/75 md:backdrop-blur-md md:supports-[backdrop-filter]:bg-background/65",
+        "py-4 md:py-5 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function PageHeader({
             {eyebrow}
           </div>
         )}
-        <h1 className="font-display text-3xl text-foreground leading-tight truncate">
+        <h1 className="font-display text-2xl md:text-3xl text-foreground leading-tight truncate">
           {title}
         </h1>
         {description && (
@@ -43,7 +43,9 @@ export function PageHeader({
         )}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 shrink-0">{actions}</div>
+        <div className="flex items-center gap-2 w-full md:w-auto md:shrink-0 flex-wrap">
+          {actions}
+        </div>
       )}
     </header>
   );
