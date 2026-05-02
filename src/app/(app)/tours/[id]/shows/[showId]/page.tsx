@@ -511,22 +511,27 @@ export default async function ShowDetailPage({
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Settlement sheet</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-3 flex-wrap">
-          <a href={`/api/shows/${s.id}/settlement-sheet?type=summary`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">Summary PDF</Button>
-          </a>
-          <a href={`/api/shows/${s.id}/settlement-sheet?type=full`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">Full PDF</Button>
-          </a>
-          <a href={`/api/shows/${s.id}/settlement-sheet?type=contract`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">Contract PDF</Button>
-          </a>
-        </CardContent>
-      </Card>
+      {s.status === "completed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Settlement sheet</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-3 flex-wrap">
+            <a href={`/api/shows/${s.id}/settlement-sheet?type=summary`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">Summary PDF</Button>
+            </a>
+            <a href={`/api/shows/${s.id}/settlement-sheet?type=full`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">Full PDF</Button>
+            </a>
+            <a href={`/api/shows/${s.id}/settlement-sheet?type=contract`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">Contract PDF</Button>
+            </a>
+            <a href={`/api/shows/${s.id}/settlement-sheet/excel`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">Export Excel</Button>
+            </a>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

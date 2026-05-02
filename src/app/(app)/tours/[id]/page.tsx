@@ -15,7 +15,9 @@ import {
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatDate, formatPence } from "@/lib/utils";
 import { getTourFinancials } from "@/lib/finance";
-import { deleteTourAction } from "../actions";
+import { deleteTourAction, quickUpdateTourStatusAction } from "../actions";
+import { tourStatusOptions } from "../schema";
+import { Select } from "@/components/ui/input";
 import { CloneTourButton } from "./clone-tour-button";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusPill } from "@/components/ui/pill";
@@ -200,6 +202,28 @@ export default async function TourDetailPage({
           </>
         }
       />
+
+      {/* Quick status update */}
+      {allowEdit && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <span className="text-sm text-muted-foreground">Update status:</span>
+            <form action={quickUpdateTourStatusAction} className="flex gap-2">
+              <input type="hidden" name="id" value={t.id} />
+              <Select name="status" defaultValue={t.status}>
+                {tourStatusOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+              <Button type="submit" size="sm" variant="outline">
+                Update
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI cards */}
       <div className={`grid gap-4 ${showFinancials ? "md:grid-cols-4" : "md:grid-cols-2"}`}>
@@ -416,16 +440,18 @@ export default async function TourDetailPage({
                         </TD>
                       )}
                       <TD className="text-right">
-                        <a
-                          href={`/api/shows/${show.id}/settlement-sheet?type=summary`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Download summary settlement PDF"
-                        >
-                          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground">
-                            PDF
-                          </Button>
-                        </a>
+                        {show.status === "completed" && (
+                          <a
+                            href={`/api/shows/${show.id}/settlement-sheet?type=summary`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Download summary settlement PDF"
+                          >
+                            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground">
+                              PDF
+                            </Button>
+                          </a>
+                        )}
                       </TD>
                     </TR>
                   );
@@ -460,13 +486,22 @@ export default async function TourDetailPage({
           </CardContent>
         </Card>
       )}
+
+      {t.status === "completed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Settlement</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-3 flex-wrap">
+            <a href={`/api/tours/${t.id}/settlement/excel`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">Tour Excel</Button>
+            </a>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
 
 type ShowRow = {
   show: { showDate: string; status: string; city: string | null; venueId: string | null };

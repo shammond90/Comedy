@@ -74,6 +74,9 @@ const styles = StyleSheet.create({
     color: palette.subtle,
     letterSpacing: 0.5,
     textTransform: "uppercase",
+    borderTopWidth: 0.5,
+    borderTopColor: palette.borderStrong,
+    paddingTop: 8,
   },
 
   /* Header */
@@ -153,21 +156,21 @@ const styles = StyleSheet.create({
 
   /* Financial grid */
   finGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 1,
     marginBottom: 4,
   },
-  finCell: {
-    width: "50%",
-    padding: 12,
-    backgroundColor: palette.paperAlt,
+  finRow: {
+    flexDirection: "row",
     marginBottom: 1,
   },
+  finCell: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: palette.paperAlt,
+  },
   finCellWide: {
-    width: "100%",
     padding: 12,
     backgroundColor: palette.accentSoft,
+    marginTop: 1,
   },
   finCellLabel: {
     fontSize: 8,
@@ -230,9 +233,12 @@ const styles = StyleSheet.create({
   sigRow: {
     flexDirection: "row",
     marginTop: 16,
-    gap: 24,
   },
   sigCol: {
+    flex: 1,
+    marginRight: 24,
+  },
+  sigColLast: {
     flex: 1,
   },
   sigLine: {
@@ -392,15 +398,17 @@ export function SettlementDocument({ data }: { data: SettlementData }) {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Financial summary</Text>
           <View style={styles.finGrid}>
-            <View style={styles.finCell}>
-              <Text style={styles.finCellLabel}>Ticket revenue</Text>
-              <Text style={styles.finCellValue}>{pence(financials.ticketRevenuePence)}</Text>
+            <View style={styles.finRow}>
+              <View style={[styles.finCell, { marginRight: 1 }]}>
+                <Text style={styles.finCellLabel}>Ticket revenue</Text>
+                <Text style={styles.finCellValue}>{pence(financials.ticketRevenuePence)}</Text>
+              </View>
+              <View style={styles.finCell}>
+                <Text style={styles.finCellLabel}>Total costs</Text>
+                <Text style={styles.finCellValue}>{pence(financials.totalCostsPence)}</Text>
+              </View>
             </View>
-            <View style={styles.finCell}>
-              <Text style={styles.finCellLabel}>Total costs</Text>
-              <Text style={styles.finCellValue}>{pence(financials.totalCostsPence)}</Text>
-            </View>
-            <View style={[styles.finCellWide, { marginTop: 1 }]}>
+            <View style={styles.finCellWide}>
               <Text style={styles.finCellLabel}>Net</Text>
               <Text style={financials.netPence < 0 ? styles.finCellValueNeg : styles.finCellValueAccent}>
                 {pence(financials.netPence)}
@@ -611,7 +619,7 @@ export function SettlementDocument({ data }: { data: SettlementData }) {
                   <Text style={styles.sigLabel}>Artist / Artist representative</Text>
                   <Text style={[styles.sigLabel, { marginTop: 4 }]}>Date: _____________</Text>
                 </View>
-                <View style={styles.sigCol}>
+                <View style={styles.sigColLast}>
                   <View style={styles.sigLine} />
                   <Text style={styles.sigLabel}>Promoter / Tour manager</Text>
                   <Text style={[styles.sigLabel, { marginTop: 4 }]}>Date: _____________</Text>

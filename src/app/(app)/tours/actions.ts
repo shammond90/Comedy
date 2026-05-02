@@ -263,3 +263,39 @@ export async function cloneTourAction(formData: FormData): Promise<void> {
   revalidatePath("/tours");
   redirect(`/tours/${newTour.id}`);
 }
+
+export async function quickUpdateTourStatusAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const status = String(formData.get("status")) as
+    | "planning"
+    | "confirmed"
+    | "in_progress"
+    | "completed"
+    | "cancelled";
+  const { user, orgId } = await requireOrg();
+  const tourRole = await getTourRole(user.id, id);
+  if (!canEdit(tourRole?.role ?? null)) return;
+
+  const [before] = await db
+    .select({ status: tours.status, name: tours.name, orgId: tours.orgId })
+    .from(tours)
+    .where(eq(tours.id, id))
+    .limit(1);
+  if (!before || before.orgId !== orgId) return;
+
+  await db.update(tours).set({ status, updatedAt: new Date() }).where(eq(tours.id, id));
+
+  if (before.status !== status) {
+    await logActivity({
+      orgId,
+      userId: user.id,
+      resourceType: "tour",
+      resourceId: id,
+      action: "update",
+      summary: `"${before.name}": ${before.status} → ${status}`,
+      changes: { status: { from: before.status, to: status } },
+    });
+  }
+  revalidatePath("/tours");
+  revalidatePath(`/tours/${id}`);
+}
