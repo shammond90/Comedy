@@ -116,7 +116,7 @@ export async function GET(
       Category: "Venue",
       Description: "Venue hire fee",
       Type: "Expense",
-      "Amount (£)": pence(fin.venueFeePence),
+      "Amount (£)": `-${pence(fin.venueFeePence)}`,
     });
   }
 
@@ -129,7 +129,7 @@ export async function GET(
         Category: "Accommodation",
         Description: a.hotelName ?? "Accommodation",
         Type: "Expense",
-        "Amount (£)": pence(a.costPence ?? 0),
+        "Amount (£)": `-${pence(a.costPence ?? 0)}`,
       });
     }
   }
@@ -147,7 +147,7 @@ export async function GET(
         Category: "Travel",
         Description: desc,
         Type: "Expense",
-        "Amount (£)": pence(t.costPence ?? 0),
+        "Amount (£)": `-${pence(t.costPence ?? 0)}`,
       });
     }
   }
@@ -160,7 +160,7 @@ export async function GET(
       Category: "Marketing",
       Description: "Marketing budget",
       Type: "Expense",
-      "Amount (£)": pence(fin.marketingPence),
+      "Amount (£)": `-${pence(fin.marketingPence)}`,
     });
   }
 
