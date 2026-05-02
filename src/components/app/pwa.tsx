@@ -51,7 +51,10 @@ export function IosInstallHint() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border bg-surface shadow-xl p-4">
+    <div
+      className="fixed left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-border bg-surface shadow-xl p-4"
+      style={{ bottom: "calc(4.5rem + var(--safe-area-bottom, 0px))" }}
+    >
       <div className="flex items-start gap-3">
         {/* App icon preview */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

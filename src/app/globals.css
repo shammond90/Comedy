@@ -199,6 +199,19 @@ input, select, textarea, button {
   background: var(--subtle);
 }
 
+/* Mobile-shell content padding: clears the fixed top bar + safe area on mobile,
+   falls back to standard desktop padding at md+. */
+.app-content-padding {
+  padding-top: calc(3rem + var(--safe-area-top) + 1rem);
+  padding-bottom: calc(4rem + var(--safe-area-bottom) + 1rem);
+}
+@media (min-width: 768px) {
+  .app-content-padding {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+}
+
 /* Status pill utilities */
 .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium; }
 .pill-planned     { background: var(--status-planned-bg);     color: var(--status-planned-fg); }

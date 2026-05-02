@@ -21,12 +21,7 @@ export default async function AppLayout({
       <TopAppBar userId={user.id} />
       <main className="flex-1 min-w-0">
         <div
-          className={[
-            "mx-auto max-w-6xl",
-            "px-4 md:px-8",
-            "pt-[calc(3rem+var(--safe-area-top)+1rem)] md:pt-10",
-            "pb-[calc(4rem+var(--safe-area-bottom)+1rem)] md:pb-10",
-          ].join(" ")}
+          className="mx-auto max-w-6xl px-4 md:px-8 app-content-padding"
         >
           <div className="pointer-events-none fixed right-6 top-4 z-40 hidden md:flex items-center gap-3 justify-end">
             <div className="pointer-events-auto">

@@ -61,7 +61,7 @@ export function TopAppBar({ userId }: { userId: string }) {
   return (
     <>
       <header
-        className="fixed inset-x-0 top-0 z-40 md:hidden border-b border-border bg-surface/85 backdrop-blur-md"
+        className="fixed inset-x-0 top-0 z-40 md:hidden border-b border-border bg-surface"
         style={{ paddingTop: "var(--safe-area-top)" }}
       >
         <div className="flex h-12 items-center justify-between px-2">

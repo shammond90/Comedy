@@ -130,7 +130,7 @@ export function BottomNav({
 
       {/* Bottom tab bar */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 md:hidden border-t border-border bg-surface/90 backdrop-blur-md"
+        className="fixed inset-x-0 bottom-0 z-40 md:hidden border-t border-border bg-surface"
         style={{ paddingBottom: "var(--safe-area-bottom)" }}
         aria-label="Primary"
       >
