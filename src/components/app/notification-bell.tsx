@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -30,6 +30,7 @@ function relTime(d: Date): string {
 }
 
 export function NotificationBell({ userId }: { userId: string }) {
+  const instanceId = useId();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [unread, setUnread] = useState(0);
@@ -56,7 +57,7 @@ export function NotificationBell({ userId }: { userId: string }) {
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`notifications:${userId}`)
+      .channel(`notifications:${userId}:${instanceId}`)
       .on(
         "postgres_changes",
         {
