@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: "uppercase",
     color: palette.subtle,
+    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 16,
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 44,
     fontFamily: "Helvetica-Bold",
     lineHeight: 1.1,
-    marginBottom: 16,
+    marginBottom: 22,
   },
   coverSub: { fontSize: 14, color: palette.muted, marginBottom: 6 },
   coverFoot: {
